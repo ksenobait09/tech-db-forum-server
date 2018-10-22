@@ -1,5 +1,7 @@
 FROM ubuntu:18.04
-# docker run --rm -it -p 5000:5432 tech-db-server:latest /bin/bash
+# docker run --name db -it -p 5432:5432 -p 5000:5000 tech-db-server:latest /bin/bash
+# docker run --name db -it -p 5432:5432 tech-db-server:latest /bin/bash
+# docker start db
 MAINTAINER Altunin Nikita
 
 # Обвновление списка пакетов

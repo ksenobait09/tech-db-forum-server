@@ -1,8 +1,8 @@
 package main
 
 import (
-	"tech-db-server/app"
 	"log"
+	"tech-db-server/app"
 )
 
 func main() {
