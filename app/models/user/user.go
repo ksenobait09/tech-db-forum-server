@@ -60,8 +60,8 @@ const sqlInsert = `
 const sqlGetByEmailAndNickname = `
 	SELECT about, email, fullname, nickname FROM users
 	WHERE email = $1
-	OR nickname = $2
-`
+	OR nickname = $2`
+
 const sqlGetByNickname = `
 	SELECT about, email, fullname, nickname FROM users
 	WHERE nickname = $1`

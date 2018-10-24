@@ -12,9 +12,9 @@ TODO: ХРАНИТЬ В ПАМЯТИ ГЛОБАЛЬНУЮ СТАТИСТИКУ
 */
 func ListenAndServe(port int) error {
 	router := fasthttprouter.New()
-	//router.POST("/api/forum/create", handlers.CreateForum)
+	router.POST("/api/forum/create", handlers.CreateForum)
 	//router.POST("/api/forum/:slug/create", handlers.CreateThreadAtForum)
-	//router.GET("/api/forum/:slug/details", handlers.GetForumDetails)
+	router.GET("/api/forum/:slug/details", handlers.GetForumDetails)
 	//router.GET("/api/forum/:slug/threads", handlers.GetForumThreads)
 	//router.GET("/api/forum/:slug/users", handlers.GetForumUsers)
 	//router.GET("/api/post/:id/details", handlers.GetPostDetails)

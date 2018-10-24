@@ -7,10 +7,10 @@ CREATE EXTENSION IF NOT EXISTS CITEXT;
 CREATE TABLE public.forums
 (
     posts integer NOT NULL DEFAULT 0,
-    slug varchar NOT NULL UNIQUE,
+    slug CITEXT NOT NULL UNIQUE,
     threads integer NOT NULL DEFAULT 0,
-    user_id integer NOT NULL,
-    "user" CITEXT NOT NULL,
+    title varchar NOT NULL,
+    "user" CITEXT NOT NULL REFERENCES users(nickname),
     CONSTRAINT forums_pkey PRIMARY KEY (slug)
 )
 WITH (
