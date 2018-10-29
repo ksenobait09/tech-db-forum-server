@@ -2,9 +2,9 @@ package handlers
 
 import (
 	"encoding/json"
-	"tech-db-server/app/singletoneLogger"
 	"github.com/valyala/fasthttp"
 	error2 "tech-db-server/app/models/error"
+	"tech-db-server/app/singletoneLogger"
 )
 
 func generateMessageJSON(responseMessage json.Marshaler) []byte {

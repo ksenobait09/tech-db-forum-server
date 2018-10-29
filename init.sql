@@ -1,31 +1,5 @@
 CREATE EXTENSION IF NOT EXISTS CITEXT;
 
--- Table: public.forums
-
--- DROP TABLE public.forums;
-
-CREATE TABLE public.forums
-(
-    posts integer NOT NULL DEFAULT 0,
-    slug CITEXT NOT NULL UNIQUE,
-    threads integer NOT NULL DEFAULT 0,
-    title varchar NOT NULL,
-    "user" CITEXT NOT NULL REFERENCES users(nickname),
-    CONSTRAINT forums_pkey PRIMARY KEY (slug)
-)
-WITH (
-    OIDS = FALSE
-)
-TABLESPACE pg_default;
-
-ALTER TABLE public.forums
-    OWNER to docker;
-
-
--- Table: public.users
-
--- DROP TABLE public.users;
-
 CREATE TABLE public.users
 (
     nickname CITEXT NOT NULL,
@@ -33,30 +7,29 @@ CREATE TABLE public.users
     email CITEXT NOT NULL UNIQUE,
     about varchar,
     CONSTRAINT users_pkey PRIMARY KEY (nickname)
-)
-WITH (
-    OIDS = FALSE
-)
-TABLESPACE pg_default;
+);
 
-ALTER TABLE public.users
-    OWNER to docker;
-
-/* TODO: finish thread */
-CREATE TABLE public.thread
+CREATE TABLE public.forums
 (
-    author CITEXT NOT NULL,
-    created TIMESTAMPTZ DEFAULT transaction_timestamp() NOT NULL,
-    CONSTRAINT users_pkey PRIMARY KEY (nickname)
-)
-WITH (
-    OIDS = FALSE
-)
-TABLESPACE pg_default;
+    posts integer NOT NULL DEFAULT 0,
+    slug CITEXT NOT NULL,
+    threads integer NOT NULL DEFAULT 0,
+    title varchar NOT NULL,
+    "user" CITEXT NOT NULL REFERENCES users(nickname),
+    CONSTRAINT forums_pkey PRIMARY KEY (slug)
+);
 
-ALTER TABLE public.forums
-    OWNER to docker;
-
+CREATE TABLE public.threads
+(
+    id SERIAL PRIMARY KEY,
+    author CITEXT NOT NULL REFERENCES users(nickname),
+    created TIMESTAMPTZ,
+    forum CITEXT NOT NULL REFERENCES forums(slug),
+    message varchar NOT NULL,
+    slug CITEXT DEFAULT NULL UNIQUE,
+    title VARCHAR,
+    votes INT NOT NULL DEFAULT 0
+);
 
 CREATE TABLE public.post (
     id SERIAL PRIMARY KEY,

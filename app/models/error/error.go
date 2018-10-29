@@ -8,4 +8,5 @@ type Error struct {
 	// Read Only: true
 	Message string `json:"message,omitempty"`
 }
+
 var DefaultMessage = []byte(`{"message": "Can't find user with id #42\n"}`)

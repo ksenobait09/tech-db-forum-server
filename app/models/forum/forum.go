@@ -3,6 +3,7 @@ package forum
 import (
 	"database/sql"
 	"tech-db-server/app/database"
+	"tech-db-server/app/models/user"
 	"tech-db-server/app/singletoneLogger"
 )
 
@@ -49,18 +50,20 @@ const sqlInsert = `
 
 const sqlGetBySlug = `
 	SELECT slug, "user", title, threads, posts FROM forums
-	WHERE slug = $1 `
+	WHERE slug = $1`
+
+const sqlGetUsers = ``
 
 type Status int
+
 const (
 	StatusConflict Status = iota + 1
 	StatusUserNotExist
 	StatusOk
 )
 
-//easyjson:json
-func (forum *Forum) Create() (user *Forum, status Status) {
-	err := db.QueryRow(sqlInsert, &forum.Slug,  &forum.Title , &forum.User, &forum.User).Scan(&forum.User)
+func (forum *Forum) Create() (*Forum, Status) {
+	err := db.QueryRow(sqlInsert, &forum.Slug, &forum.Title, &forum.User, &forum.User).Scan(&forum.User)
 	if err == sql.ErrNoRows {
 		existedForum := Get(forum.Slug)
 		return existedForum, StatusConflict
@@ -79,11 +82,30 @@ func Get(slug string) *Forum {
 	}
 	if rows.Next() {
 		forum := &Forum{}
-			err = rows.Scan(&forum.Slug, &forum.User, &forum.Title, &forum.Threads, &forum.Posts)
+		err = rows.Scan(&forum.Slug, &forum.User, &forum.Title, &forum.Threads, &forum.Posts)
 		if err != nil {
 			singletoneLogger.LogErrorWithStack(err)
 		}
 		return forum
 	}
 	return nil
+}
+
+// TODO: доделать
+func GetUsers(slug string, limit int, since string, desc bool) user.UserPointList {
+	users := make(user.UserPointList, 0, limit)
+	rows, err := db.Query(sqlGetUsers, slug)
+	if err != nil {
+		singletoneLogger.LogErrorWithStack(err)
+	}
+	for rows.Next() {
+		u := &user.User{}
+		err = rows.Scan(&u.About, &u.Email, &u.Fullname, &u.Nickname)
+		if err != nil {
+			singletoneLogger.LogErrorWithStack(err)
+		}
+		users = append(users, u)
+	}
+	rows.Close()
+	return users
 }

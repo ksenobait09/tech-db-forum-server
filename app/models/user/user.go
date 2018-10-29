@@ -129,7 +129,6 @@ func Get(nickname string) *User {
 func Update(nickname string, updateData *UserUpdate) (*User, Status) {
 	res, err := db.Exec(sqlUpdate, &updateData.About, &updateData.Email, &updateData.Fullname, nickname)
 	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
 		return nil, StatusConflict
 	}
 	rows, err := res.RowsAffected()
