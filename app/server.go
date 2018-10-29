@@ -25,15 +25,15 @@ func dirtyHack(router *fasthttprouter.Router) fasthttp.RequestHandler {
 
 func ListenAndServe(port int) error {
 	router := fasthttprouter.New()
-	// router.POST("/api/forum/create", handlers.CreateForum) см dirtyHack()
+	// router.POST("/api/forum/create", handlers.CreateForum) см. dirtyHack()
 	router.POST("/api/forum/:slug/create", handlers.CreateThreadAtForum)
 	router.GET("/api/forum/:slug/details", handlers.GetForumDetails)
 	router.GET("/api/forum/:slug/threads", handlers.GetForumThreads)
 	//router.GET("/api/forum/:slug/users", handlers.GetForumUsers)
 	//router.GET("/api/post/:id/details", handlers.GetPostDetails)
 	//router.POST("/api/post/:id/details", handlers.UpdatePostDetails)
-	//router.POST("/api/service/clear", handlers.ServiceClear)
-	//router.GET("/api/service/status", handlers.GetServiceStatus)
+	router.POST("/api/service/clear", handlers.ServiceClear)
+	router.GET("/api/service/status", handlers.GetServiceStatus)
 	//router.POST("/api/thread/:slug_or_id/create", handlers.CreatePostAtThread)
 	router.GET("/api/thread/:slug_or_id/details", handlers.GetThreadDetails)
 	router.POST("/api/thread/:slug_or_id/details", handlers.UpdateThreadDetails)
