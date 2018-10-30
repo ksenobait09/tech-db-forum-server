@@ -78,5 +78,19 @@ func GetForumThreads(ctx *fasthttp.RequestCtx) {
 		return
 	}
 	response(ctx, threads, fasthttp.StatusOK)
+}
 
+func VoteThread(ctx *fasthttp.RequestCtx) {
+	vote := &thread.Vote{}
+	err := vote.UnmarshalJSON(ctx.PostBody())
+	if err != nil {
+		singletoneLogger.LogErrorWithStack(err)
+	}
+	slug, id := getSlugOrId(ctx)
+	t := thread.VoteForThread(slug, id, vote)
+	if t != nil {
+		response(ctx, t, fasthttp.StatusOK)
+		return
+	}
+	responseWithDefaultError(ctx, fasthttp.StatusNotFound)
 }

@@ -7,17 +7,16 @@ import (
 )
 
 var db *sql.DB
-var currentStatus *Status
 
+// mutex
 var ForumsCount *int32
 var PostsCount *int32
 var ThreadsCount *int32
 var UsersCount *int32
 
 func init() {
-	currentStatus = &Status{}
 	db = database.GetInstance()
-	initStatus()
+	//initStatus()
 }
 
 //easyjson:json
@@ -61,14 +60,15 @@ func ClearDatabase() {
 }
 
 func initStatus() {
-	err := db.QueryRow(sqlCounts).Scan(ForumsCount, PostsCount,	ThreadsCount, UsersCount)
+	err := db.QueryRow(sqlCounts).Scan(ForumsCount, PostsCount, ThreadsCount, UsersCount)
 	if err != nil {
 		singletoneLogger.LogErrorWithStack(err)
 	}
 }
 
-func GetStatus() (*Status) {
+func GetStatus() *Status {
 	initStatus()
+	currentStatus := &Status{}
 	currentStatus.Thread = *ThreadsCount
 	currentStatus.Post = *PostsCount
 	currentStatus.Forum = *ForumsCount

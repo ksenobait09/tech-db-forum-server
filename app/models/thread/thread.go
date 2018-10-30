@@ -2,11 +2,11 @@ package thread
 
 import (
 	"database/sql"
+	"fmt"
 	"github.com/go-openapi/strfmt"
 	"tech-db-server/app/database"
-	"tech-db-server/app/singletoneLogger"
 	"tech-db-server/app/models/forum"
-	"fmt"
+	"tech-db-server/app/singletoneLogger"
 )
 
 var db *sql.DB
@@ -66,6 +66,18 @@ type ThreadUpdate struct {
 	Title interface{} `json:"title,omitempty"`
 }
 
+//easyjson:json
+type Vote struct {
+	// Идентификатор пользователя.
+	// Required: true
+	Nickname string `json:"nickname"`
+
+	// Отданный голос.
+	// Required: true
+	// Enum: [-1 1]
+	Voice int8 `json:"voice"`
+}
+
 const sqlInsert = `
 	INSERT INTO threads (author, created, forum, message, slug, title)
 	SELECT COALESCE("users".nickname, t.author), t.created, COALESCE("forums".slug, t.forum), t.message, t.slug, t.title
@@ -105,7 +117,42 @@ const sqlUpdateBySlug = `
 const sqlGetByForumSlug = `
 	SELECT author, created, forum, "message", slug, title, id, votes
 	FROM threads
-	WHERE forum = $1`
+	WHERE forum = $1
+`
+
+const sqlInsertVote = `
+	INSERT INTO votes (idThread, nickname, voice) VALUES ($1, $2, $3)
+`
+
+const sqlUpdateVote = `
+	UPDATE votes SET 
+	voice = $3
+	WHERE idThread = $1 
+	AND nickname = $2
+`
+
+const sqlUpdateThreadVotes = `
+	UPDATE threads SET
+	votes = $1
+	WHERE id = $2
+	RETURNING author, created, forum, "message" , slug, title, id, votes
+`
+
+const sqlSelectThreadAndVoteBySlug = `
+	SELECT votes.voice, threads.id, threads.votes, u.nickname
+	FROM (SELECT 1) s
+	LEFT JOIN threads ON threads.slug = $1
+	LEFT JOIN users as u ON u.nickname = $2
+	LEFT JOIN votes ON threads.id = votes.iDthread AND u.nickname = votes.nickname
+`
+
+const sqlSelectThreadAndVoteById = `
+	SELECT votes.voice, threads.id, threads.votes, u.nickname
+	FROM (SELECT 1) s
+	LEFT JOIN threads ON threads.id = $1
+	LEFT JOIN "users" u ON u.nickname = $2
+	LEFT JOIN votes ON threads.id = votes.iDthread AND u.nickname = votes.nickname
+`
 
 type Status int
 
@@ -177,7 +224,7 @@ func (update *ThreadUpdate) Update(slug string, id int) *Thread {
 	return thread
 }
 
-func GetByForumSlug(slug string, limit int, since *strfmt.DateTime, desc bool) (ThreadPointList,Status) {
+func GetByForumSlug(slug string, limit int, since *strfmt.DateTime, desc bool) (ThreadPointList, Status) {
 	if forum.Get(slug) == nil {
 		return nil, StatusUserOrForumNotExist
 	}
@@ -204,7 +251,7 @@ func GetByForumSlug(slug string, limit int, since *strfmt.DateTime, desc bool) (
 			sinceCondition = "AND created >= $3"
 		}
 		rows, err = db.Query(fmt.Sprintf("%s %s %s %s", sqlGetByForumSlug, sinceCondition, orderCondition, limitCondition), slug, limit, since)
- 	} else {
+	} else {
 		rows, err = db.Query(fmt.Sprintf("%s %s %s", sqlGetByForumSlug, orderCondition, limitCondition), slug, limit)
 	}
 
@@ -223,4 +270,50 @@ func GetByForumSlug(slug string, limit int, since *strfmt.DateTime, desc bool) (
 	}
 	rows.Close()
 	return threads, StatusOk
+}
+
+func VoteForThread(slug string, id int, vote *Vote) *Thread {
+	tx, err := db.Begin()
+	defer tx.Rollback()
+	if err != nil {
+		singletoneLogger.LogErrorWithStack(err)
+		return nil
+	}
+	prevVoice := &sql.NullInt64{}
+	threadId := &sql.NullInt64{}
+	threadVotes := &sql.NullInt64{}
+	userNickname := &sql.NullString{}
+	if id != 0 {
+		err = db.QueryRow(sqlSelectThreadAndVoteById, id, vote.Nickname).Scan(prevVoice, threadId, &threadVotes, userNickname)
+	} else {
+		err = db.QueryRow(sqlSelectThreadAndVoteBySlug, slug, vote.Nickname).Scan(prevVoice, threadId, &threadVotes, userNickname)
+	}
+	if err != nil {
+		singletoneLogger.LogErrorWithStack(err)
+		return nil
+	}
+	if !threadId.Valid || !userNickname.Valid {
+		return nil
+	}
+	var prevVoiceInt int64
+	if prevVoice.Valid {
+		prevVoiceInt = prevVoice.Int64
+		_, err = db.Exec(sqlUpdateVote, threadId.Int64, userNickname.String, vote.Voice)
+	} else {
+		_, err = db.Exec(sqlInsertVote, threadId.Int64, userNickname.String, vote.Voice)
+	}
+	newVotes := threadVotes.Int64 + (int64(vote.Voice) - prevVoiceInt)
+	if err != nil {
+		singletoneLogger.LogErrorWithStack(err)
+		return nil
+	}
+	thread := &Thread{}
+	slugNullable := &sql.NullString{}
+	err = db.QueryRow(sqlUpdateThreadVotes, newVotes, threadId.Int64).Scan(&thread.Author, &thread.Created, &thread.Forum, &thread.Message, slugNullable, &thread.Title, &thread.ID, &thread.Votes)
+	thread.Slug = slugNullable.String
+	if err != nil {
+		singletoneLogger.LogErrorWithStack(err)
+		return nil
+	}
+	return thread
 }

@@ -31,6 +31,14 @@ CREATE TABLE public.threads
     votes INT NOT NULL DEFAULT 0
 );
 
+CREATE TABLE public.votes
+(
+    idThread INT NOT NULL REFERENCES threads(id),
+    nickname CITEXT NOT NULL REFERENCES users(nickname),
+    voice smallint NOT NULL,
+    PRIMARY KEY (idThread, nickname)
+);
+
 CREATE TABLE public.post (
     id SERIAL PRIMARY KEY,
     author CITEXT NOT NULL,

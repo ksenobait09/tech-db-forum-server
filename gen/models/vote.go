@@ -19,7 +19,7 @@ import (
 //
 // swagger:model Vote
 type Vote struct {
-
+	IdThread int32
 	// Идентификатор пользователя.
 	// Required: true
 	Nickname string `json:"nickname"`
