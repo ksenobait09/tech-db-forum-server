@@ -9,10 +9,10 @@ import (
 var db *sql.DB
 
 // mutex
-var ForumsCount *int32
-var PostsCount *int32
-var ThreadsCount *int32
-var UsersCount *int32
+var ForumsCount int
+var PostsCount int
+var ThreadsCount int
+var UsersCount int
 
 func init() {
 	db = database.GetInstance()
@@ -23,27 +23,23 @@ func init() {
 type Status struct {
 	// Кол-во разделов в базе данных.
 	// Required: true
-	Forum int32 `json:"forum"`
+	Forum int `json:"forum"`
 
 	// Кол-во сообщений в базе данных.
 	// Required: true
-	Post int32 `json:"post"`
+	Post int `json:"post"`
 
 	// Кол-во веток обсуждения в базе данных.
 	// Required: true
-	Thread int32 `json:"thread"`
+	Thread int `json:"thread"`
 
 	// Кол-во пользователей в базе данных.
 	// Required: true
-	User int32 `json:"user"`
+	User int `json:"user"`
 }
 
 const sqlClear = `
-	TRUNCATE users;
-	TRUNCATE forums;
-	TRUNCATE threads;
-	TRUNCATE posts;
-	TRUNCATE voices;`
+	TRUNCATE users, forums, threads, posts, votes;`
 
 const sqlCounts = `
 SELECT *
@@ -60,7 +56,7 @@ func ClearDatabase() {
 }
 
 func initStatus() {
-	err := db.QueryRow(sqlCounts).Scan(ForumsCount, PostsCount, ThreadsCount, UsersCount)
+	err := db.QueryRow(sqlCounts).Scan(&UsersCount, &ThreadsCount, &ForumsCount, &PostsCount)
 	if err != nil {
 		singletoneLogger.LogErrorWithStack(err)
 	}
@@ -69,9 +65,9 @@ func initStatus() {
 func GetStatus() *Status {
 	initStatus()
 	currentStatus := &Status{}
-	currentStatus.Thread = *ThreadsCount
-	currentStatus.Post = *PostsCount
-	currentStatus.Forum = *ForumsCount
-	currentStatus.User = *UsersCount
+	currentStatus.Thread = ThreadsCount
+	currentStatus.Post = PostsCount
+	currentStatus.Forum = ForumsCount
+	currentStatus.User = UsersCount
 	return currentStatus
 }

@@ -154,6 +154,11 @@ const sqlSelectThreadAndVoteById = `
 	LEFT JOIN votes ON threads.id = votes.iDthread AND u.nickname = votes.nickname
 `
 
+const sqlUpdateThreadsCount = `
+	UPDATE forums
+	SET threads = threads + 1
+	WHERE slug = $1`
+
 type Status int
 
 const (
@@ -168,8 +173,10 @@ func createSqlNullString(str string) *sql.NullString {
 }
 
 func (thread *Thread) Create() Status {
+	tx, err := db.Begin()
+	defer tx.Rollback()
 	slugNullable := createSqlNullString(thread.Slug)
-	err := db.QueryRow(sqlInsert, &thread.Author, &thread.Created, &thread.Forum, &thread.Message, slugNullable, &thread.Title, &thread.Author, &thread.Forum).Scan(&thread.Author, &thread.Created, &thread.Forum, &thread.Message, slugNullable, &thread.Title, &thread.ID)
+	err = tx.QueryRow(sqlInsert, &thread.Author, &thread.Created, &thread.Forum, &thread.Message, slugNullable, &thread.Title, &thread.Author, &thread.Forum).Scan(&thread.Author, &thread.Created, &thread.Forum, &thread.Message, slugNullable, &thread.Title, &thread.ID)
 	thread.Slug = slugNullable.String
 	if err == sql.ErrNoRows {
 		thread.Get(thread.Slug, 0)
@@ -178,6 +185,12 @@ func (thread *Thread) Create() Status {
 	if err != nil {
 		return StatusUserOrForumNotExist
 	}
+	_, err = tx.Exec(sqlUpdateThreadsCount, thread.Forum)
+	if err != nil {
+		singletoneLogger.LogErrorWithStack(err)
+		return StatusUserOrForumNotExist
+	}
+	tx.Commit()
 	return StatusOk
 }
 

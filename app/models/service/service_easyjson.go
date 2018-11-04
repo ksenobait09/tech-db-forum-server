@@ -37,13 +37,13 @@ func easyjsonCd93bc43DecodeTechDbServerAppModelsService(in *jlexer.Lexer, out *S
 		}
 		switch key {
 		case "forum":
-			out.Forum = int32(in.Int32())
+			out.Forum = int(in.Int())
 		case "post":
-			out.Post = int32(in.Int32())
+			out.Post = int(in.Int())
 		case "thread":
-			out.Thread = int32(in.Int32())
+			out.Thread = int(in.Int())
 		case "user":
-			out.User = int32(in.Int32())
+			out.User = int(in.Int())
 		default:
 			in.SkipRecursive()
 		}
@@ -66,7 +66,7 @@ func easyjsonCd93bc43EncodeTechDbServerAppModelsService(out *jwriter.Writer, in 
 		} else {
 			out.RawString(prefix)
 		}
-		out.Int32(int32(in.Forum))
+		out.Int(int(in.Forum))
 	}
 	{
 		const prefix string = ",\"post\":"
@@ -76,7 +76,7 @@ func easyjsonCd93bc43EncodeTechDbServerAppModelsService(out *jwriter.Writer, in 
 		} else {
 			out.RawString(prefix)
 		}
-		out.Int32(int32(in.Post))
+		out.Int(int(in.Post))
 	}
 	{
 		const prefix string = ",\"thread\":"
@@ -86,7 +86,7 @@ func easyjsonCd93bc43EncodeTechDbServerAppModelsService(out *jwriter.Writer, in 
 		} else {
 			out.RawString(prefix)
 		}
-		out.Int32(int32(in.Thread))
+		out.Int(int(in.Thread))
 	}
 	{
 		const prefix string = ",\"user\":"
@@ -96,7 +96,7 @@ func easyjsonCd93bc43EncodeTechDbServerAppModelsService(out *jwriter.Writer, in 
 		} else {
 			out.RawString(prefix)
 		}
-		out.Int32(int32(in.User))
+		out.Int(int(in.User))
 	}
 	out.RawByte('}')
 }

@@ -5,10 +5,12 @@ package post
 import (
 	json "encoding/json"
 	strfmt "github.com/go-openapi/strfmt"
-	pq "github.com/lib/pq"
 	easyjson "github.com/mailru/easyjson"
 	jlexer "github.com/mailru/easyjson/jlexer"
 	jwriter "github.com/mailru/easyjson/jwriter"
+	forum "tech-db-server/app/models/forum"
+	thread "tech-db-server/app/models/thread"
+	user "tech-db-server/app/models/user"
 )
 
 // suppress unused package warning
@@ -97,7 +99,146 @@ func (v *PostPointList) UnmarshalJSON(data []byte) error {
 func (v *PostPointList) UnmarshalEasyJSON(l *jlexer.Lexer) {
 	easyjson5a72dc82DecodeTechDbServerAppModelsPost(l, v)
 }
-func easyjson5a72dc82DecodeTechDbServerAppModelsPost1(in *jlexer.Lexer, out *Post) {
+func easyjson5a72dc82DecodeTechDbServerAppModelsPost1(in *jlexer.Lexer, out *PostFull) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeString()
+		in.WantColon()
+		if in.IsNull() {
+			in.Skip()
+			in.WantComma()
+			continue
+		}
+		switch key {
+		case "author":
+			if in.IsNull() {
+				in.Skip()
+				out.Author = nil
+			} else {
+				if out.Author == nil {
+					out.Author = new(user.User)
+				}
+				(*out.Author).UnmarshalEasyJSON(in)
+			}
+		case "forum":
+			if in.IsNull() {
+				in.Skip()
+				out.Forum = nil
+			} else {
+				if out.Forum == nil {
+					out.Forum = new(forum.Forum)
+				}
+				(*out.Forum).UnmarshalEasyJSON(in)
+			}
+		case "post":
+			if in.IsNull() {
+				in.Skip()
+				out.Post = nil
+			} else {
+				if out.Post == nil {
+					out.Post = new(Post)
+				}
+				(*out.Post).UnmarshalEasyJSON(in)
+			}
+		case "thread":
+			if in.IsNull() {
+				in.Skip()
+				out.Thread = nil
+			} else {
+				if out.Thread == nil {
+					out.Thread = new(thread.Thread)
+				}
+				(*out.Thread).UnmarshalEasyJSON(in)
+			}
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+func easyjson5a72dc82EncodeTechDbServerAppModelsPost1(out *jwriter.Writer, in PostFull) {
+	out.RawByte('{')
+	first := true
+	_ = first
+	if in.Author != nil {
+		const prefix string = ",\"author\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		(*in.Author).MarshalEasyJSON(out)
+	}
+	if in.Forum != nil {
+		const prefix string = ",\"forum\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		(*in.Forum).MarshalEasyJSON(out)
+	}
+	if in.Post != nil {
+		const prefix string = ",\"post\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		(*in.Post).MarshalEasyJSON(out)
+	}
+	if in.Thread != nil {
+		const prefix string = ",\"thread\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		(*in.Thread).MarshalEasyJSON(out)
+	}
+	out.RawByte('}')
+}
+
+// MarshalJSON supports json.Marshaler interface
+func (v PostFull) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjson5a72dc82EncodeTechDbServerAppModelsPost1(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
+// MarshalEasyJSON supports easyjson.Marshaler interface
+func (v PostFull) MarshalEasyJSON(w *jwriter.Writer) {
+	easyjson5a72dc82EncodeTechDbServerAppModelsPost1(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *PostFull) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjson5a72dc82DecodeTechDbServerAppModelsPost1(&r, v)
+	return r.Error()
+}
+
+// UnmarshalEasyJSON supports easyjson.Unmarshaler interface
+func (v *PostFull) UnmarshalEasyJSON(l *jlexer.Lexer) {
+	easyjson5a72dc82DecodeTechDbServerAppModelsPost1(l, v)
+}
+func easyjson5a72dc82DecodeTechDbServerAppModelsPost2(in *jlexer.Lexer, out *Post) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -140,31 +281,6 @@ func easyjson5a72dc82DecodeTechDbServerAppModelsPost1(in *jlexer.Lexer, out *Pos
 			out.Parent = int64(in.Int64())
 		case "thread":
 			out.Thread = int(in.Int())
-		case "Path":
-			if in.IsNull() {
-				in.Skip()
-				out.Path = nil
-			} else {
-				in.Delim('[')
-				if out.Path == nil {
-					if !in.IsDelim(']') {
-						out.Path = make(pq.Int64Array, 0, 8)
-					} else {
-						out.Path = pq.Int64Array{}
-					}
-				} else {
-					out.Path = (out.Path)[:0]
-				}
-				for !in.IsDelim(']') {
-					var v4 int64
-					v4 = int64(in.Int64())
-					out.Path = append(out.Path, v4)
-					in.WantComma()
-				}
-				in.Delim(']')
-			}
-		case "RootParent":
-			out.RootParent = int64(in.Int64())
 		default:
 			in.SkipRecursive()
 		}
@@ -175,7 +291,7 @@ func easyjson5a72dc82DecodeTechDbServerAppModelsPost1(in *jlexer.Lexer, out *Pos
 		in.Consumed()
 	}
 }
-func easyjson5a72dc82EncodeTechDbServerAppModelsPost1(out *jwriter.Writer, in Post) {
+func easyjson5a72dc82EncodeTechDbServerAppModelsPost2(out *jwriter.Writer, in Post) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -259,60 +375,29 @@ func easyjson5a72dc82EncodeTechDbServerAppModelsPost1(out *jwriter.Writer, in Po
 		}
 		out.Int(int(in.Thread))
 	}
-	{
-		const prefix string = ",\"Path\":"
-		if first {
-			first = false
-			out.RawString(prefix[1:])
-		} else {
-			out.RawString(prefix)
-		}
-		if in.Path == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
-			out.RawString("null")
-		} else {
-			out.RawByte('[')
-			for v5, v6 := range in.Path {
-				if v5 > 0 {
-					out.RawByte(',')
-				}
-				out.Int64(int64(v6))
-			}
-			out.RawByte(']')
-		}
-	}
-	{
-		const prefix string = ",\"RootParent\":"
-		if first {
-			first = false
-			out.RawString(prefix[1:])
-		} else {
-			out.RawString(prefix)
-		}
-		out.Int64(int64(in.RootParent))
-	}
 	out.RawByte('}')
 }
 
 // MarshalJSON supports json.Marshaler interface
 func (v Post) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson5a72dc82EncodeTechDbServerAppModelsPost1(&w, v)
+	easyjson5a72dc82EncodeTechDbServerAppModelsPost2(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v Post) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson5a72dc82EncodeTechDbServerAppModelsPost1(w, v)
+	easyjson5a72dc82EncodeTechDbServerAppModelsPost2(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *Post) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson5a72dc82DecodeTechDbServerAppModelsPost1(&r, v)
+	easyjson5a72dc82DecodeTechDbServerAppModelsPost2(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *Post) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson5a72dc82DecodeTechDbServerAppModelsPost1(l, v)
+	easyjson5a72dc82DecodeTechDbServerAppModelsPost2(l, v)
 }
