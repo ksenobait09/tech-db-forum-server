@@ -39,15 +39,15 @@ CREATE TABLE public.votes
     PRIMARY KEY (idThread, nickname)
 );
 
-CREATE TABLE public.post (
+CREATE TABLE public.posts (
     id SERIAL PRIMARY KEY,
-    author CITEXT NOT NULL,
+    author CITEXT NOT NULL REFERENCES users(nickname),
     created TIMESTAMPTZ DEFAULT transaction_timestamp() NOT NULL,
-    forum VARCHAR DEFAULT NULL,
-    isEdited BOOLEAN DEFAULT FALSE,
-    message varchar NOT NULL,
+    forum CITEXT NOT NULL,
+    isEdited BOOLEAN NOT NULL DEFAULT FALSE,
+    message VARCHAR NOT NULL,
     parent INTEGER DEFAULT 0 NOT NULL,
-    path varchar NULL,
-    root INTEGER DEFAULT 0,
+    path INTEGER[] DEFAULT array[]::INT[],
+    rootParent INTEGER DEFAULT 0,
     thread INTEGER DEFAULT 0
 );

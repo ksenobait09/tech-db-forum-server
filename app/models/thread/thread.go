@@ -284,9 +284,9 @@ func VoteForThread(slug string, id int, vote *Vote) *Thread {
 	threadVotes := &sql.NullInt64{}
 	userNickname := &sql.NullString{}
 	if id != 0 {
-		err = db.QueryRow(sqlSelectThreadAndVoteById, id, vote.Nickname).Scan(prevVoice, threadId, &threadVotes, userNickname)
+		err = tx.QueryRow(sqlSelectThreadAndVoteById, id, vote.Nickname).Scan(prevVoice, threadId, &threadVotes, userNickname)
 	} else {
-		err = db.QueryRow(sqlSelectThreadAndVoteBySlug, slug, vote.Nickname).Scan(prevVoice, threadId, &threadVotes, userNickname)
+		err = tx.QueryRow(sqlSelectThreadAndVoteBySlug, slug, vote.Nickname).Scan(prevVoice, threadId, &threadVotes, userNickname)
 	}
 	if err != nil {
 		singletoneLogger.LogErrorWithStack(err)
@@ -298,9 +298,9 @@ func VoteForThread(slug string, id int, vote *Vote) *Thread {
 	var prevVoiceInt int64
 	if prevVoice.Valid {
 		prevVoiceInt = prevVoice.Int64
-		_, err = db.Exec(sqlUpdateVote, threadId.Int64, userNickname.String, vote.Voice)
+		_, err = tx.Exec(sqlUpdateVote, threadId.Int64, userNickname.String, vote.Voice)
 	} else {
-		_, err = db.Exec(sqlInsertVote, threadId.Int64, userNickname.String, vote.Voice)
+		_, err = tx.Exec(sqlInsertVote, threadId.Int64, userNickname.String, vote.Voice)
 	}
 	newVotes := threadVotes.Int64 + (int64(vote.Voice) - prevVoiceInt)
 	if err != nil {
@@ -309,11 +309,12 @@ func VoteForThread(slug string, id int, vote *Vote) *Thread {
 	}
 	thread := &Thread{}
 	slugNullable := &sql.NullString{}
-	err = db.QueryRow(sqlUpdateThreadVotes, newVotes, threadId.Int64).Scan(&thread.Author, &thread.Created, &thread.Forum, &thread.Message, slugNullable, &thread.Title, &thread.ID, &thread.Votes)
+	err = tx.QueryRow(sqlUpdateThreadVotes, newVotes, threadId.Int64).Scan(&thread.Author, &thread.Created, &thread.Forum, &thread.Message, slugNullable, &thread.Title, &thread.ID, &thread.Votes)
 	thread.Slug = slugNullable.String
 	if err != nil {
 		singletoneLogger.LogErrorWithStack(err)
 		return nil
 	}
+	tx.Commit()
 	return thread
 }

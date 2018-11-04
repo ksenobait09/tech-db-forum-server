@@ -34,7 +34,7 @@ func ListenAndServe(port int) error {
 	//router.POST("/api/post/:id/details", handlers.UpdatePostDetails)
 	router.POST("/api/service/clear", handlers.ServiceClear)
 	router.GET("/api/service/status", handlers.GetServiceStatus)
-	//router.POST("/api/thread/:slug_or_id/create", handlers.CreatePostAtThread)
+	router.POST("/api/thread/:slug_or_id/create", handlers.CreatePostAtThread)
 	router.GET("/api/thread/:slug_or_id/details", handlers.GetThreadDetails)
 	router.POST("/api/thread/:slug_or_id/details", handlers.UpdateThreadDetails)
 	//router.GET("/api/thread/:slug_or_id/posts", handlers.GetThreadPosts)
