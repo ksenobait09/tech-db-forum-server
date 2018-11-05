@@ -13,6 +13,7 @@ RUN apt-get -y update
 ENV PGVER 10
 RUN apt-get install -y postgresql-$PGVER
 
+RUN apt install -y gcc
 # Установка golang
 RUN apt install -y git wget
 
@@ -57,7 +58,8 @@ EXPOSE 5432
 VOLUME  ["/etc/postgresql", "/var/log/postgresql", "/var/lib/postgresql"]
 
 # Back to the root user
-USER ROOT
+USER root
 # Запускаем PostgreSQL и сервер
 #
-CMD service postgresql start && go run cmd/main.go
+RUN go build /server/cmd/main.go
+CMD service postgresql start && ./main
