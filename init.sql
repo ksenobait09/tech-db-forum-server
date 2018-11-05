@@ -1,6 +1,6 @@
 CREATE EXTENSION IF NOT EXISTS CITEXT;
 
-CREATE TABLE public.users
+CREATE TABLE IF NOT EXISTS public.users
 (
     nickname CITEXT NOT NULL,
     fullname varchar NOT NULL,
@@ -9,7 +9,7 @@ CREATE TABLE public.users
     CONSTRAINT users_pkey PRIMARY KEY (nickname)
 );
 
-CREATE TABLE public.forums
+CREATE TABLE IF NOT EXISTS public.forums
 (
     posts integer NOT NULL DEFAULT 0,
     slug CITEXT NOT NULL,
@@ -19,7 +19,7 @@ CREATE TABLE public.forums
     CONSTRAINT forums_pkey PRIMARY KEY (slug)
 );
 
-CREATE TABLE public.threads
+CREATE TABLE IF NOT EXISTS public.threads
 (
     id SERIAL PRIMARY KEY,
     author CITEXT NOT NULL REFERENCES users(nickname),
@@ -31,7 +31,7 @@ CREATE TABLE public.threads
     votes INT NOT NULL DEFAULT 0
 );
 
-CREATE TABLE public.votes
+CREATE TABLE IF NOT EXISTS public.votes
 (
     idThread INT NOT NULL REFERENCES threads(id),
     nickname CITEXT NOT NULL REFERENCES users(nickname),
@@ -39,7 +39,7 @@ CREATE TABLE public.votes
     PRIMARY KEY (idThread, nickname)
 );
 
-CREATE TABLE public.posts (
+CREATE TABLE IF NOT EXISTS public.posts (
     id SERIAL PRIMARY KEY,
     author CITEXT NOT NULL REFERENCES users(nickname),
     created TIMESTAMPTZ DEFAULT transaction_timestamp() NOT NULL,
@@ -52,7 +52,7 @@ CREATE TABLE public.posts (
     thread INTEGER DEFAULT 0
 );
 
-CREATE TABLE public.userforum (
+CREATE TABLE IF NOT EXISTS public.userforum (
     slug CITEXT NOT NULL,
     nickname CITEXT NOT NULL,
     PRIMARY KEY (slug, nickname)
