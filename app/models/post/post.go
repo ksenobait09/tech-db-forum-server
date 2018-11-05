@@ -95,12 +95,12 @@ const sqlUpdatePostsCount = `
 	SET posts = posts + $1
 	WHERE slug = $2
 `
-const sqlGetThreadIdBySlug = `
+const sqlGetThreadIdAndForumBySlug = `
 	SELECT id, forum
 	FROM threads
 	WHERE slug = $1
 `
-const sqlGetThreadIdById = `
+const sqlGetThreadIdAndForumById = `
 	SELECT id, forum
 	FROM threads
 	WHERE id = $1
@@ -123,6 +123,18 @@ const sqlGet = `
 	WHERE p.id = $1
 `
 
+const sqlGetPostsFlat = `
+	SELECT p.author, p.created, p.forum, p.isedited, p.message, p.parent, p.thread, p.id
+	FROM posts p
+	WHERE thread = $1
+`
+
+const sqlGetPostsParentTree = `
+	SELECT p.author, p.created, p.forum, p.isedited, p.message, p.parent, p.thread, p.id
+	FROM posts p
+	WHERE rootparent IN (SELECT id FROM posts p2 WHERE p2.thread=$1 AND p2.parent=0
+`
+
 func CreatePosts(threadSlug string, threadId int, posts PostPointList) (Status, PostPointList) {
 	postsLen := len(posts)
 	tx, err := db.Begin()
@@ -133,13 +145,13 @@ func CreatePosts(threadSlug string, threadId int, posts PostPointList) (Status, 
 	var forum string
 	//Проверка существования thread
 	if threadId == 0 {
-		err = tx.QueryRow(sqlGetThreadIdBySlug, threadSlug).Scan(&threadId, &forum)
+		err = tx.QueryRow(sqlGetThreadIdAndForumBySlug, threadSlug).Scan(&threadId, &forum)
 		if err != nil {
 			singletoneLogger.LogErrorWithStack(err)
 			return StatusNotExist, nil
 		}
 	} else {
-		err = tx.QueryRow(sqlGetThreadIdById, threadId).Scan(&threadId, &forum)
+		err = tx.QueryRow(sqlGetThreadIdAndForumById, threadId).Scan(&threadId, &forum)
 		if err != nil {
 			singletoneLogger.LogErrorWithStack(err)
 			return StatusNotExist, nil
@@ -282,4 +294,89 @@ func (post *Post) Update() Status {
 		singletoneLogger.LogErrorWithStack(err)
 	}
 	return StatusOK
+}
+
+func GetPosts(id int, limit int, since int, sort string, desc bool) (PostPointList) {
+	if limit == 0 {
+		limit = 100
+	}
+	posts := make(PostPointList, 0, limit)
+	var query strings.Builder
+	query.Grow(100)
+
+	switch sort {
+	case "":
+		fallthrough
+	case "flat":
+		fmt.Fprint(&query, sqlGetPostsFlat)
+		if since != 0 {
+			if desc {
+				fmt.Fprint(&query, " AND p.id < $2")
+			} else {
+				fmt.Fprint(&query, " AND p.id > $2")
+			}
+		} else {
+			fmt.Fprint(&query, " AND $2 = 0")
+		}
+		if desc {
+			fmt.Fprint(&query, " ORDER BY p.id DESC")
+		} else {
+			fmt.Fprint(&query, " ORDER BY p.id")
+		}
+		fmt.Fprint(&query, " LIMIT $3")
+	case "tree":
+		fmt.Fprint(&query, sqlGetPostsFlat)
+		if since != 0 {
+			if desc {
+				fmt.Fprint(&query, " AND p.path < (SELECT path FROM posts WHERE id = $2)")
+			} else {
+				fmt.Fprint(&query, " AND p.path > (SELECT path FROM posts WHERE id = $2)")
+			}
+		} else {
+			fmt.Fprint(&query, " AND $2 = 0")
+		}
+		if desc {
+			fmt.Fprint(&query, " ORDER BY p.path DESC")
+		} else {
+			fmt.Fprint(&query, " ORDER BY p.path")
+		}
+		fmt.Fprint(&query, " LIMIT $3")
+	case "parent_tree":
+		fmt.Fprint(&query, sqlGetPostsParentTree)
+		if since != 0 {
+			if desc {
+				fmt.Fprint(&query, " AND p2.id < (SELECT rootparent FROM posts WHERE id=$2)")
+			} else {
+				fmt.Fprint(&query, " AND p2.id > (SELECT rootparent FROM posts WHERE id=$2)")
+			}
+		} else {
+			fmt.Fprint(&query, " AND $2 = 0")
+		}
+		if desc {
+			fmt.Fprint(&query, " ORDER BY p2.id DESC")
+		} else {
+			fmt.Fprint(&query, " ORDER BY p2.id")
+		}
+		fmt.Fprint(&query, " LIMIT $3)")
+		if desc {
+			fmt.Fprint(&query, " ORDER BY p.rootparent DESC, p.path")
+		} else {
+			fmt.Fprint(&query, " ORDER BY p.path")
+		}
+	}
+	rows, err := db.Query(query.String(), id, since, limit)
+	if err != nil {
+		singletoneLogger.LogErrorWithStack(err)
+	}
+	for rows.Next() {
+		post := &Post{}
+		err = rows.Scan(&post.Author, &post.Created, &post.Forum, &post.IsEdited, &post.Message, &post.Parent, &post.Thread, &post.ID)
+		if err != nil {
+			singletoneLogger.LogErrorWithStack(err)
+		}
+		posts = append(posts, post)
+	}
+	rows.Close()
+	return posts
+
 }

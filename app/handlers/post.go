@@ -6,6 +6,7 @@ import (
 	"tech-db-server/app/singletoneLogger"
 	"strconv"
 	"strings"
+	"tech-db-server/app/models/thread"
 )
 
 func parsePostId(ctx *fasthttp.RequestCtx) int64 {
@@ -29,6 +30,20 @@ func CreatePostAtThread(ctx *fasthttp.RequestCtx) {
 	case post.StatusBadParent:
 		responseWithDefaultError(ctx, fasthttp.StatusConflict)
 	}
+}
+
+func GetThreadPosts(ctx *fasthttp.RequestCtx) {
+	slug, id := getThreadSlugOrId(ctx)
+	id = thread.GetThreadId(slug, id)
+	if id == 0 {
+		responseWithDefaultError(ctx, fasthttp.StatusNotFound)
+		return
+	}
+	limit := ctx.QueryArgs().GetUintOrZero("limit")
+	desc := ctx.QueryArgs().GetBool("desc")
+	since := ctx.QueryArgs().GetUintOrZero("since")
+	sort := string(ctx.QueryArgs().Peek("sort"))
+	response(ctx, post.GetPosts(id, limit, since, sort, desc), fasthttp.StatusOK)
 }
 
 func UpdatePostDetails(ctx *fasthttp.RequestCtx) {

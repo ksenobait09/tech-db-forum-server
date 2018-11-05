@@ -159,6 +159,17 @@ const sqlUpdateThreadsCount = `
 	SET threads = threads + 1
 	WHERE slug = $1`
 
+const sqlGetThreadIdBySlug = `
+	SELECT id
+	FROM threads
+	WHERE slug = $1
+`
+const sqlGetThreadIdById = `
+	SELECT id
+	FROM threads
+	WHERE id = $1
+`
+
 type Status int
 
 const (
@@ -331,4 +342,21 @@ func VoteForThread(slug string, id int, vote *Vote) *Thread {
 	}
 	tx.Commit()
 	return thread
+}
+
+func GetThreadId (slug string, id int) int {
+	if id == 0 {
+		err := db.QueryRow(sqlGetThreadIdBySlug, slug).Scan(&id)
+		if err != nil {
+			singletoneLogger.LogErrorWithStack(err)
+			return 0
+		}
+	} else {
+		err := db.QueryRow(sqlGetThreadIdById, id).Scan(&id)
+		if err != nil {
+			singletoneLogger.LogErrorWithStack(err)
+			return 0
+		}
+	}
+	return id
 }
