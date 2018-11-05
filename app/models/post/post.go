@@ -10,7 +10,7 @@ import (
 	"tech-db-server/app/database"
 	"tech-db-server/app/singletoneLogger"
 	"tech-db-server/app/models/user"
-	"tech-db-server/app/models/forum"
+	forumModel "tech-db-server/app/models/forum"
 	"tech-db-server/app/models/thread"
 )
 
@@ -23,7 +23,7 @@ func init() {
 //easyjson:json
 type PostFull struct {
 	Author *user.User `json:"author,omitempty"`
-	Forum *forum.Forum `json:"forum,omitempty"`
+	Forum *forumModel.Forum `json:"forum,omitempty"`
 	Post *Post `json:"post,omitempty"`
 	Thread *thread.Thread `json:"thread,omitempty"`
 }
@@ -148,12 +148,14 @@ func CreatePosts(threadSlug string, threadId int, posts PostPointList) (Status, 
 	if postsLen == 0 {
 		return StatusOK, posts
 	}
-	// Взять path родительских постов
+	// Взять path родительских постов и authormap
 	mapOfParentPathsById := make(map[int64][]int64)
+	mapOfAuthors := make(map[string]bool)
 	for _, post := range posts {
 		if post.Parent != 0 {
 			mapOfParentPathsById[post.Parent] = nil
 		}
+		mapOfAuthors[post.Author] = true
 	}
 
 	var parentIds []string
@@ -162,7 +164,7 @@ func CreatePosts(threadSlug string, threadId int, posts PostPointList) (Status, 
 	}
 	if len(parentIds) > 0 {
 		returnedPostsCount := 0
-		rows, err := db.Query(fmt.Sprintf(sqlGetIdAndPathOfPostsInThread, strings.Join(parentIds, ", ")), threadId)
+		rows, err := tx.Query(fmt.Sprintf(sqlGetIdAndPathOfPostsInThread, strings.Join(parentIds, ", ")), threadId)
 		if err != nil {
 			singletoneLogger.LogErrorWithStack(err)
 		}
@@ -238,6 +240,9 @@ func CreatePosts(threadSlug string, threadId int, posts PostPointList) (Status, 
 		singletoneLogger.LogErrorWithStack(err)
 		return StatusNotExist, nil
 	}
+	// userforum
+	forumModel.InsertMapIntoUserForum(tx, forum, mapOfAuthors)
+
 	err = tx.Commit()
 	if err != nil {
 		singletoneLogger.LogErrorWithStack(err)

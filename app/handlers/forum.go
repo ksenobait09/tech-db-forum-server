@@ -18,7 +18,7 @@ func CreateForum(ctx *fasthttp.RequestCtx) {
 		response(ctx, f, fasthttp.StatusCreated)
 	case forum.StatusConflict:
 		response(ctx, f, fasthttp.StatusConflict)
-	case forum.StatusUserNotExist:
+	case forum.StatusSomethingNotExist:
 		responseWithDefaultError(ctx, fasthttp.StatusNotFound)
 	}
 }
@@ -33,10 +33,16 @@ func GetForumDetails(ctx *fasthttp.RequestCtx) {
 	responseWithDefaultError(ctx, fasthttp.StatusNotFound)
 }
 
-//func GetForumUsers(ctx *fasthttp.RequestCtx) {
-//	slug := ctx.UserValue("slug").(string)
-//	limit := ctx.QueryArgs().GetUintOrZero("limit")
-//	desc := ctx.QueryArgs().GetBool("desc")
-//	since := string(ctx.QueryArgs().Peek("since"))
-//	users := forum.GetUsers(slug, limit, since, desc)
-//}
+func GetForumUsers(ctx *fasthttp.RequestCtx) {
+	slug := ctx.UserValue("slug").(string)
+	limit := ctx.QueryArgs().GetUintOrZero("limit")
+	desc := ctx.QueryArgs().GetBool("desc")
+	since := string(ctx.QueryArgs().Peek("since"))
+	users, status := forum.GetUsers(slug, limit, since, desc)
+	if status == forum.StatusOk {
+		response(ctx, users, fasthttp.StatusOK)
+		return
+	}
+	responseWithDefaultError(ctx, fasthttp.StatusNotFound)
+}
+

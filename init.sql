@@ -51,3 +51,9 @@ CREATE TABLE public.posts (
     rootParent INTEGER DEFAULT 0,
     thread INTEGER DEFAULT 0
 );
+
+CREATE TABLE public.userforum (
+    slug CITEXT NOT NULL,
+    nickname CITEXT NOT NULL,
+    PRIMARY KEY (slug, nickname)
+)

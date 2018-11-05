@@ -190,6 +190,7 @@ func (thread *Thread) Create() Status {
 		singletoneLogger.LogErrorWithStack(err)
 		return StatusUserOrForumNotExist
 	}
+	forum.InsertIntoUserForum(tx, thread.Forum, thread.Author)
 	tx.Commit()
 	return StatusOk
 }
