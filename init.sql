@@ -4,10 +4,12 @@ CREATE TABLE IF NOT EXISTS public.users
 (
     nickname CITEXT NOT NULL,
     fullname varchar NOT NULL,
-    email CITEXT NOT NULL UNIQUE,
+    email CITEXT NOT NULL,
     about varchar,
     CONSTRAINT users_pkey PRIMARY KEY (nickname)
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS index_users_email ON public.users(email);
 
 CREATE TABLE IF NOT EXISTS public.forums
 (
@@ -18,6 +20,8 @@ CREATE TABLE IF NOT EXISTS public.forums
     "user" CITEXT NOT NULL REFERENCES users(nickname),
     CONSTRAINT forums_pkey PRIMARY KEY (slug)
 );
+
+CREATE INDEX IF NOT EXISTS index_forums_user ON public.forums("user");
 
 CREATE TABLE IF NOT EXISTS public.threads
 (
@@ -30,6 +34,8 @@ CREATE TABLE IF NOT EXISTS public.threads
     title VARCHAR,
     votes INT NOT NULL DEFAULT 0
 );
+
+CREATE INDEX IF NOT EXISTS index_threads_forum ON public.threads(forum);
 
 CREATE TABLE IF NOT EXISTS public.votes
 (
@@ -52,8 +58,14 @@ CREATE TABLE IF NOT EXISTS public.posts (
     thread INTEGER DEFAULT 0
 );
 
+CREATE INDEX IF NOT EXISTS index_posts_thread_parent_id ON public.posts(thread, parent, id);
+CREATE INDEX IF NOT EXISTS index_posts_thread_id ON public.posts(thread, id);
+CREATE INDEX IF NOT EXISTS index_posts_thread_path ON public.posts(thread, path);
+CREATE INDEX IF NOT EXISTS index_posts_rootparent_path ON public.posts(rootParent, path);
+
 CREATE TABLE IF NOT EXISTS public.userforum (
     slug CITEXT NOT NULL,
     nickname CITEXT NOT NULL,
     PRIMARY KEY (slug, nickname)
 )
+
