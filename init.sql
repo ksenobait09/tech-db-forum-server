@@ -45,6 +45,8 @@ CREATE TABLE IF NOT EXISTS public.votes
     PRIMARY KEY (idThread, nickname)
 );
 
+CREATE INDEX IF NOT EXISTS index_votes_cover ON public.votes(idThread, nickname, voice);
+
 CREATE TABLE IF NOT EXISTS public.posts (
     id SERIAL PRIMARY KEY,
     author CITEXT NOT NULL REFERENCES users(nickname),
