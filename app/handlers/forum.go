@@ -45,4 +45,3 @@ func GetForumUsers(ctx *fasthttp.RequestCtx) {
 	}
 	responseWithDefaultError(ctx, fasthttp.StatusNotFound)
 }
-

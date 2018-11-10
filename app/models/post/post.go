@@ -8,10 +8,11 @@ import (
 	"strconv"
 	"strings"
 	"tech-db-server/app/database"
-	"tech-db-server/app/singletoneLogger"
-	"tech-db-server/app/models/user"
 	forumModel "tech-db-server/app/models/forum"
 	"tech-db-server/app/models/thread"
+	"tech-db-server/app/models/user"
+	"tech-db-server/app/singletoneLogger"
+	"tech-db-server/app/models/service"
 )
 
 var db *sql.DB
@@ -22,10 +23,10 @@ func init() {
 
 //easyjson:json
 type PostFull struct {
-	Author *user.User `json:"author,omitempty"`
-	Forum *forumModel.Forum `json:"forum,omitempty"`
-	Post *Post `json:"post,omitempty"`
-	Thread *thread.Thread `json:"thread,omitempty"`
+	Author *user.User        `json:"author,omitempty"`
+	Forum  *forumModel.Forum `json:"forum,omitempty"`
+	Post   *Post             `json:"post,omitempty"`
+	Thread *thread.Thread    `json:"thread,omitempty"`
 }
 
 //easyjson:json
@@ -270,6 +271,7 @@ func CreatePosts(threadSlug string, threadId int, posts PostPointList) (Status, 
 	for _, post := range posts {
 		post.Created = &created
 	}
+	service.IncPostsCount(postsLen)
 	return StatusOK, posts
 }
 
@@ -296,7 +298,7 @@ func (post *Post) Update() Status {
 	return StatusOK
 }
 
-func GetPosts(id int, limit int, since int, sort string, desc bool) (PostPointList) {
+func GetPosts(id int, limit int, since int, sort string, desc bool) PostPointList {
 	if limit == 0 {
 		limit = 100
 	}

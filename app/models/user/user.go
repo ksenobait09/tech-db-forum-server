@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"tech-db-server/app/database"
 	"tech-db-server/app/singletoneLogger"
+	"tech-db-server/app/models/service"
 )
 
 var db *sql.DB
@@ -106,6 +107,7 @@ func (u *User) Create() (user *User, existingUsers UserPointList) {
 		return
 	}
 	user = u
+	service.IncUsersCount(1)
 	return
 }
 

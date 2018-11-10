@@ -2,11 +2,11 @@ package post
 
 import (
 	"database/sql"
-	"tech-db-server/app/singletoneLogger"
-	"tech-db-server/app/models/thread"
 	"fmt"
 	"tech-db-server/app/models/forum"
+	"tech-db-server/app/models/thread"
 	"tech-db-server/app/models/user"
+	"tech-db-server/app/singletoneLogger"
 )
 
 const sqlGetPostData = `
@@ -35,14 +35,15 @@ u.about, u.email, u.fullname, u.nickname
 const sqlUserFieldsEmpty = `
 '', '', '', ''
 `
-func PostDetails (id int64, related []string) *PostFull {
+
+func PostDetails(id int64, related []string) *PostFull {
 	post := &Post{}
 	post.ID = id
 	t := &thread.Thread{}
 	f := &forum.Forum{}
 	u := &user.User{}
 	getAuthor, getForum, getThread := parseFlagsFromRelated(related)
-	err := db.QueryRow(*buildPostDetailsQuery(getAuthor, getForum, getThread), getThread, getForum,  getAuthor, id).
+	err := db.QueryRow(*buildPostDetailsQuery(getAuthor, getForum, getThread), getThread, getForum, getAuthor, id).
 		Scan(&post.Author, &post.Created, &post.Forum, &post.IsEdited, &post.Message, &post.Parent, &post.Thread,
 			&t.Author, &t.Created, &t.Forum, &t.Message, &t.Slug, &t.Title, &t.ID, &t.Votes,
 			&f.Slug, &f.User, &f.Title, &f.Threads, &f.Posts,
@@ -53,7 +54,7 @@ func PostDetails (id int64, related []string) *PostFull {
 	if err != nil {
 		singletoneLogger.LogErrorWithStack(err)
 	}
-	data := &PostFull{Post:post}
+	data := &PostFull{Post: post}
 	if getAuthor {
 		data.Author = u
 	}
@@ -66,7 +67,7 @@ func PostDetails (id int64, related []string) *PostFull {
 	return data
 }
 
-func parseFlagsFromRelated (related []string) (getAuthor bool, getForum bool, getThread bool) {
+func parseFlagsFromRelated(related []string) (getAuthor bool, getForum bool, getThread bool) {
 	for _, data := range related {
 		switch data {
 		case "forum":
@@ -81,9 +82,9 @@ func parseFlagsFromRelated (related []string) (getAuthor bool, getForum bool, ge
 }
 
 func buildPostDetailsQuery(getAuthor bool, getForum bool, getThread bool) *string {
-	var	forums string
-	var	threads string
-	var	users string
+	var forums string
+	var threads string
+	var users string
 	if getAuthor {
 		users = sqlUserFields
 	} else {

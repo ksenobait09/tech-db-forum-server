@@ -2,40 +2,45 @@ package service
 
 import (
 	"database/sql"
+	"sync/atomic"
 	"tech-db-server/app/database"
 	"tech-db-server/app/singletoneLogger"
 )
 
 var db *sql.DB
 
-// mutex
-var ForumsCount int
-var PostsCount int
-var ThreadsCount int
-var UsersCount int
+// atomic
+var ForumsCount *int32
+var PostsCount *int32
+var ThreadsCount *int32
+var UsersCount *int32
 
 func init() {
+	ForumsCount = new(int32)
+	PostsCount = new(int32)
+	ThreadsCount = new(int32)
+	UsersCount = new(int32)
 	db = database.GetInstance()
-	//initStatus()
+	initStatus()
 }
 
 //easyjson:json
 type Status struct {
 	// Кол-во разделов в базе данных.
 	// Required: true
-	Forum int `json:"forum"`
+	Forum int32 `json:"forum"`
 
 	// Кол-во сообщений в базе данных.
 	// Required: true
-	Post int `json:"post"`
+	Post int32 `json:"post"`
 
 	// Кол-во веток обсуждения в базе данных.
 	// Required: true
-	Thread int `json:"thread"`
+	Thread int32 `json:"thread"`
 
 	// Кол-во пользователей в базе данных.
 	// Required: true
-	User int `json:"user"`
+	User int32 `json:"user"`
 }
 
 const sqlClear = `
@@ -56,18 +61,32 @@ func ClearDatabase() {
 }
 
 func initStatus() {
-	err := db.QueryRow(sqlCounts).Scan(&UsersCount, &ThreadsCount, &ForumsCount, &PostsCount)
+	err := db.QueryRow(sqlCounts).Scan(UsersCount, ThreadsCount, ForumsCount, PostsCount)
 	if err != nil {
 		singletoneLogger.LogErrorWithStack(err)
 	}
 }
 
 func GetStatus() *Status {
-	initStatus()
-	currentStatus := &Status{}
-	currentStatus.Thread = ThreadsCount
-	currentStatus.Post = PostsCount
-	currentStatus.Forum = ForumsCount
-	currentStatus.User = UsersCount
+	currentStatus := &Status{
+		Thread: atomic.LoadInt32(ThreadsCount),
+		Post: atomic.LoadInt32(PostsCount),
+		Forum: atomic.LoadInt32(ForumsCount),
+		User: atomic.LoadInt32(UsersCount),
+	}
 	return currentStatus
+}
+
+func IncThreadsCount(increment int) {
+	atomic.AddInt32(ThreadsCount, int32(increment))
+}
+
+func IncPostsCount(increment int) {
+	atomic.AddInt32(PostsCount, int32(increment))
+}
+func IncForumsCount(increment int) {
+	atomic.AddInt32(ForumsCount, int32(increment))
+}
+func IncUsersCount(increment int) {
+	atomic.AddInt32(UsersCount, int32(increment))
 }

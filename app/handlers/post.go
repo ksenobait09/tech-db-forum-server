@@ -2,11 +2,11 @@ package handlers
 
 import (
 	"github.com/valyala/fasthttp"
-	"tech-db-server/app/models/post"
-	"tech-db-server/app/singletoneLogger"
 	"strconv"
 	"strings"
+	"tech-db-server/app/models/post"
 	"tech-db-server/app/models/thread"
+	"tech-db-server/app/singletoneLogger"
 )
 
 func parsePostId(ctx *fasthttp.RequestCtx) int64 {

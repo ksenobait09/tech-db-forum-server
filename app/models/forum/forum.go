@@ -2,11 +2,12 @@ package forum
 
 import (
 	"database/sql"
+	"fmt"
+	"strings"
 	"tech-db-server/app/database"
 	"tech-db-server/app/models/user"
 	"tech-db-server/app/singletoneLogger"
-	"strings"
-	"fmt"
+	"tech-db-server/app/models/service"
 )
 
 var db *sql.DB
@@ -84,6 +85,7 @@ func (forum *Forum) Create() (*Forum, Status) {
 	if err != nil {
 		return nil, StatusSomethingNotExist
 	}
+	service.IncForumsCount(1)
 	return forum, StatusOk
 }
 
@@ -147,8 +149,7 @@ func GetUsers(slug string, limit int, since string, desc bool) (user.UserPointLi
 	return users, StatusOk
 }
 
-
-func IsForumExists(slug string) (bool) {
+func IsForumExists(slug string) bool {
 	err := db.QueryRow(`SELECT slug FROM forums WHERE slug=$1`, slug).Scan(&slug)
 	if err == sql.ErrNoRows {
 		return false
@@ -166,12 +167,12 @@ func InsertMapIntoUserForum(tx *sql.Tx, slug string, users map[string]bool) {
 		return
 	}
 	var query strings.Builder
-	query.Grow(46 + 11 * lenUsers + 23)
+	query.Grow(46 + 11*lenUsers + 23)
 	fmt.Fprint(&query, "INSERT INTO userforum (slug, nickname) VALUES")
 	counterPlaceholders := 1
 	i := 1
 	var args []interface{}
-	for u := range users{
+	for u := range users {
 		first := counterPlaceholders
 		counterPlaceholders++
 		second := counterPlaceholders
@@ -184,7 +185,7 @@ func InsertMapIntoUserForum(tx *sql.Tx, slug string, users map[string]bool) {
 		args = append(args, slug, u)
 		i++
 	}
-	fmt.Fprintf(&query, " ON CONFLICT DO NOTHING", )
+	fmt.Fprintf(&query, " ON CONFLICT DO NOTHING")
 	_, err := tx.Exec(query.String(), args...)
 	if err != nil {
 		singletoneLogger.LogErrorWithStack(err)

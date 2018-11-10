@@ -7,6 +7,7 @@ import (
 	"tech-db-server/app/database"
 	"tech-db-server/app/models/forum"
 	"tech-db-server/app/singletoneLogger"
+	"tech-db-server/app/models/service"
 )
 
 var db *sql.DB
@@ -203,6 +204,7 @@ func (thread *Thread) Create() Status {
 	}
 	forum.InsertIntoUserForum(tx, thread.Forum, thread.Author)
 	tx.Commit()
+	service.IncThreadsCount(1)
 	return StatusOk
 }
 
@@ -344,7 +346,7 @@ func VoteForThread(slug string, id int, vote *Vote) *Thread {
 	return thread
 }
 
-func GetThreadId (slug string, id int) int {
+func GetThreadId(slug string, id int) int {
 	if id == 0 {
 		err := db.QueryRow(sqlGetThreadIdBySlug, slug).Scan(&id)
 		if err != nil {
