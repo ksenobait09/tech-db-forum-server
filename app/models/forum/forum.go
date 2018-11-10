@@ -7,6 +7,7 @@ import (
 	"tech-db-server/app/database"
 	"tech-db-server/app/models/user"
 	"tech-db-server/app/singletoneLogger"
+	"tech-db-server/app/models/service"
 )
 
 var db *sql.DB
@@ -84,7 +85,7 @@ func (forum *Forum) Create() (*Forum, Status) {
 	if err != nil {
 		return nil, StatusSomethingNotExist
 	}
-	//service.IncForumsCount(1)
+	service.IncForumsCount(1)
 	return forum, StatusOk
 }
 

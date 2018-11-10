@@ -12,6 +12,7 @@ import (
 	"tech-db-server/app/models/thread"
 	"tech-db-server/app/models/user"
 	"tech-db-server/app/singletoneLogger"
+	"tech-db-server/app/models/service"
 )
 
 var db *sql.DB
@@ -270,7 +271,7 @@ func CreatePosts(threadSlug string, threadId int, posts PostPointList) (Status, 
 	for _, post := range posts {
 		post.Created = &created
 	}
-	//service.IncPostsCount(postsLen)
+	service.IncPostsCount(postsLen)
 	return StatusOK, posts
 }
 

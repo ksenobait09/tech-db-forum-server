@@ -43,11 +43,13 @@ func PostDetails(id int64, related []string) *PostFull {
 	f := &forum.Forum{}
 	u := &user.User{}
 	getAuthor, getForum, getThread := parseFlagsFromRelated(related)
+	slugNullable := &sql.NullString{}
 	err := db.QueryRow(*buildPostDetailsQuery(getAuthor, getForum, getThread), getThread, getForum, getAuthor, id).
 		Scan(&post.Author, &post.Created, &post.Forum, &post.IsEdited, &post.Message, &post.Parent, &post.Thread,
-			&t.Author, &t.Created, &t.Forum, &t.Message, &t.Slug, &t.Title, &t.ID, &t.Votes,
+			&t.Author, &t.Created, &t.Forum, &t.Message, slugNullable, &t.Title, &t.ID, &t.Votes,
 			&f.Slug, &f.User, &f.Title, &f.Threads, &f.Posts,
 			&u.About, &u.Email, &u.Fullname, &u.Nickname)
+	t.Slug = slugNullable.String
 	if err == sql.ErrNoRows {
 		return nil
 	}

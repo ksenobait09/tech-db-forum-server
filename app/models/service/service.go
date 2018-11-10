@@ -16,12 +16,12 @@ var ThreadsCount *int32
 var UsersCount *int32
 
 func init() {
-	//ForumsCount = new(int32)
-	//PostsCount = new(int32)
-	//ThreadsCount = new(int32)
-	//UsersCount = new(int32)
+	ForumsCount = new(int32)
+	PostsCount = new(int32)
+	ThreadsCount = new(int32)
+	UsersCount = new(int32)
 	db = database.GetInstance()
-	//initStatus()
+	initStatus()
 }
 
 //easyjson:json
@@ -58,10 +58,10 @@ func ClearDatabase() {
 	if err != nil {
 		singletoneLogger.LogErrorWithStack(err)
 	}
-	//resetThreadsCount()
-	//resetPostsCount()
-	//resetForumsCount()
-	//resetUsersCount()
+	resetThreadsCount()
+	resetPostsCount()
+	resetForumsCount()
+	resetUsersCount()
 }
 
 func initStatus() {
@@ -80,14 +80,14 @@ func getStatus() *Status {
 	return status
 }
 func GetStatus() *Status {
-	//currentStatus := &Status{
-	//	Thread: atomic.LoadInt32(ThreadsCount),
-	//	Post:   atomic.LoadInt32(PostsCount),
-	//	Forum:  atomic.LoadInt32(ForumsCount),
-	//	User:   atomic.LoadInt32(UsersCount),
-	//}
-	//return currentStatus
-	return getStatus()
+	currentStatus := &Status{
+		Thread: atomic.LoadInt32(ThreadsCount),
+		Post:   atomic.LoadInt32(PostsCount),
+		Forum:  atomic.LoadInt32(ForumsCount),
+		User:   atomic.LoadInt32(UsersCount),
+	}
+	return currentStatus
+	//return getStatus()
 }
 
 func IncThreadsCount(increment int) {
