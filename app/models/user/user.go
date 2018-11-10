@@ -3,7 +3,6 @@ package user
 import (
 	"database/sql"
 	"tech-db-server/app/database"
-	"tech-db-server/app/models/service"
 	"tech-db-server/app/singletoneLogger"
 )
 
@@ -107,7 +106,7 @@ func (u *User) Create() (user *User, existingUsers UserPointList) {
 		return
 	}
 	user = u
-	service.IncUsersCount(1)
+	//service.IncUsersCount(1)
 	return
 }
 

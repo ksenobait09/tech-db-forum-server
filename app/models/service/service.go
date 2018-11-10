@@ -16,12 +16,12 @@ var ThreadsCount *int32
 var UsersCount *int32
 
 func init() {
-	ForumsCount = new(int32)
-	PostsCount = new(int32)
-	ThreadsCount = new(int32)
-	UsersCount = new(int32)
+	//ForumsCount = new(int32)
+	//PostsCount = new(int32)
+	//ThreadsCount = new(int32)
+	//UsersCount = new(int32)
 	db = database.GetInstance()
-	initStatus()
+	//initStatus()
 }
 
 //easyjson:json
@@ -44,7 +44,7 @@ type Status struct {
 }
 
 const sqlClear = `
-	TRUNCATE users, forums, threads, posts, votes;`
+	TRUNCATE users, forums, threads, posts, votes, userforum;`
 
 const sqlCounts = `
 SELECT *
@@ -58,10 +58,10 @@ func ClearDatabase() {
 	if err != nil {
 		singletoneLogger.LogErrorWithStack(err)
 	}
-	resetThreadsCount()
-	resetPostsCount()
-	resetForumsCount()
-	resetUsersCount()
+	//resetThreadsCount()
+	//resetPostsCount()
+	//resetForumsCount()
+	//resetUsersCount()
 }
 
 func initStatus() {
@@ -71,14 +71,23 @@ func initStatus() {
 	}
 }
 
-func GetStatus() *Status {
-	currentStatus := &Status{
-		Thread: atomic.LoadInt32(ThreadsCount),
-		Post:   atomic.LoadInt32(PostsCount),
-		Forum:  atomic.LoadInt32(ForumsCount),
-		User:   atomic.LoadInt32(UsersCount),
+func getStatus() *Status {
+	status := &Status{}
+	err := db.QueryRow(sqlCounts).Scan(&status.User, &status.Thread, &status.Forum, &status.Post)
+	if err != nil {
+		singletoneLogger.LogErrorWithStack(err)
 	}
-	return currentStatus
+	return status
+}
+func GetStatus() *Status {
+	//currentStatus := &Status{
+	//	Thread: atomic.LoadInt32(ThreadsCount),
+	//	Post:   atomic.LoadInt32(PostsCount),
+	//	Forum:  atomic.LoadInt32(ForumsCount),
+	//	User:   atomic.LoadInt32(UsersCount),
+	//}
+	//return currentStatus
+	return getStatus()
 }
 
 func IncThreadsCount(increment int) {

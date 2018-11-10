@@ -9,7 +9,6 @@ import (
 	"strings"
 	"tech-db-server/app/database"
 	forumModel "tech-db-server/app/models/forum"
-	"tech-db-server/app/models/service"
 	"tech-db-server/app/models/thread"
 	"tech-db-server/app/models/user"
 	"tech-db-server/app/singletoneLogger"
@@ -271,7 +270,7 @@ func CreatePosts(threadSlug string, threadId int, posts PostPointList) (Status, 
 	for _, post := range posts {
 		post.Created = &created
 	}
-	service.IncPostsCount(postsLen)
+	//service.IncPostsCount(postsLen)
 	return StatusOK, posts
 }
 
