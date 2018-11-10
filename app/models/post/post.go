@@ -9,10 +9,10 @@ import (
 	"strings"
 	"tech-db-server/app/database"
 	forumModel "tech-db-server/app/models/forum"
+	"tech-db-server/app/models/service"
 	"tech-db-server/app/models/thread"
 	"tech-db-server/app/models/user"
 	"tech-db-server/app/singletoneLogger"
-	"tech-db-server/app/models/service"
 )
 
 var db *sql.DB

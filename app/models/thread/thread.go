@@ -6,8 +6,8 @@ import (
 	"github.com/go-openapi/strfmt"
 	"tech-db-server/app/database"
 	"tech-db-server/app/models/forum"
-	"tech-db-server/app/singletoneLogger"
 	"tech-db-server/app/models/service"
+	"tech-db-server/app/singletoneLogger"
 )
 
 var db *sql.DB

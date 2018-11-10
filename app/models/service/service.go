@@ -58,6 +58,10 @@ func ClearDatabase() {
 	if err != nil {
 		singletoneLogger.LogErrorWithStack(err)
 	}
+	resetThreadsCount()
+	resetPostsCount()
+	resetForumsCount()
+	resetUsersCount()
 }
 
 func initStatus() {
@@ -70,9 +74,9 @@ func initStatus() {
 func GetStatus() *Status {
 	currentStatus := &Status{
 		Thread: atomic.LoadInt32(ThreadsCount),
-		Post: atomic.LoadInt32(PostsCount),
-		Forum: atomic.LoadInt32(ForumsCount),
-		User: atomic.LoadInt32(UsersCount),
+		Post:   atomic.LoadInt32(PostsCount),
+		Forum:  atomic.LoadInt32(ForumsCount),
+		User:   atomic.LoadInt32(UsersCount),
 	}
 	return currentStatus
 }
@@ -80,7 +84,6 @@ func GetStatus() *Status {
 func IncThreadsCount(increment int) {
 	atomic.AddInt32(ThreadsCount, int32(increment))
 }
-
 func IncPostsCount(increment int) {
 	atomic.AddInt32(PostsCount, int32(increment))
 }
@@ -89,4 +92,17 @@ func IncForumsCount(increment int) {
 }
 func IncUsersCount(increment int) {
 	atomic.AddInt32(UsersCount, int32(increment))
+}
+
+func resetThreadsCount() {
+	atomic.StoreInt32(ThreadsCount, 0)
+}
+func resetPostsCount() {
+	atomic.StoreInt32(PostsCount, 0)
+}
+func resetForumsCount() {
+	atomic.StoreInt32(ForumsCount, 0)
+}
+func resetUsersCount() {
+	atomic.StoreInt32(UsersCount, 0)
 }

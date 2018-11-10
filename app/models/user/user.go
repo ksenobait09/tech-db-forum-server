@@ -3,8 +3,8 @@ package user
 import (
 	"database/sql"
 	"tech-db-server/app/database"
-	"tech-db-server/app/singletoneLogger"
 	"tech-db-server/app/models/service"
+	"tech-db-server/app/singletoneLogger"
 )
 
 var db *sql.DB
