@@ -6,7 +6,6 @@ import (
 	"strings"
 	"tech-db-server/app/models/post"
 	"tech-db-server/app/models/thread"
-	"tech-db-server/app/singletoneLogger"
 )
 
 func parsePostId(ctx *fasthttp.RequestCtx) int64 {
@@ -17,10 +16,7 @@ func parsePostId(ctx *fasthttp.RequestCtx) int64 {
 func CreatePostAtThread(ctx *fasthttp.RequestCtx) {
 	slug, id := getThreadSlugOrId(ctx)
 	var posts post.PostPointList
-	err := posts.UnmarshalJSON(ctx.PostBody())
-	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
-	}
+	posts.UnmarshalJSON(ctx.PostBody())
 	status, posts := post.CreatePosts(slug, id, posts)
 	switch status {
 	case post.StatusOK:
@@ -48,10 +44,7 @@ func GetThreadPosts(ctx *fasthttp.RequestCtx) {
 
 func UpdatePostDetails(ctx *fasthttp.RequestCtx) {
 	p := &post.Post{}
-	err := p.UnmarshalJSON(ctx.PostBody())
-	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
-	}
+	p.UnmarshalJSON(ctx.PostBody())
 	p.ID = parsePostId(ctx)
 	if p.ID == 0 {
 		responseWithDefaultError(ctx, fasthttp.StatusNotFound)

@@ -3,7 +3,6 @@ package user
 import (
 	"database/sql"
 	"tech-db-server/app/database"
-	"tech-db-server/app/singletoneLogger"
 	"tech-db-server/app/models/service"
 )
 
@@ -85,22 +84,13 @@ const (
 func (u *User) Create() (user *User, existingUsers UserPointList) {
 	existingUsers = nil
 	user = nil
-	res, err := db.Exec(sqlInsert, &u.About, &u.Email, &u.Fullname, &u.Nickname)
-	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
-	}
+	res, _ := db.Exec(sqlInsert, &u.About, &u.Email, &u.Fullname, &u.Nickname)
 	if rows, _ := res.RowsAffected(); rows == 0 {
-		rows, err := db.Query(sqlGetByEmailAndNickname, u.Email, u.Nickname)
-		if err != nil {
-			singletoneLogger.LogErrorWithStack(err)
-		}
+		rows, _ := db.Query(sqlGetByEmailAndNickname, u.Email, u.Nickname)
 		existingUsers = make(UserPointList, 0, 1)
 		for rows.Next() {
 			user := &User{}
-			err = rows.Scan(&user.About, &user.Email, &user.Fullname, &user.Nickname)
-			if err != nil {
-				singletoneLogger.LogErrorWithStack(err)
-			}
+			_ = rows.Scan(&user.About, &user.Email, &user.Fullname, &user.Nickname)
 			existingUsers = append(existingUsers, user)
 		}
 		rows.Close()
@@ -112,17 +102,11 @@ func (u *User) Create() (user *User, existingUsers UserPointList) {
 }
 
 func Get(nickname string) *User {
-	rows, err := db.Query(sqlGetByNickname, nickname)
+	rows, _ := db.Query(sqlGetByNickname, nickname)
 	defer rows.Close()
-	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
-	}
 	if rows.Next() {
 		user := &User{}
-		err = rows.Scan(&user.About, &user.Email, &user.Fullname, &user.Nickname)
-		if err != nil {
-			singletoneLogger.LogErrorWithStack(err)
-		}
+		_ = rows.Scan(&user.About, &user.Email, &user.Fullname, &user.Nickname)
 		return user
 	}
 	return nil
@@ -133,10 +117,7 @@ func Update(nickname string, updateData *UserUpdate) (*User, Status) {
 	if err != nil {
 		return nil, StatusConflict
 	}
-	rows, err := res.RowsAffected()
-	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
-	}
+	rows, _ := res.RowsAffected()
 	if rows == 0 {
 		return nil, StatusNotExist
 	}

@@ -6,7 +6,6 @@ import (
 	"strings"
 	"tech-db-server/app/database"
 	"tech-db-server/app/models/user"
-	"tech-db-server/app/singletoneLogger"
 	"tech-db-server/app/models/service"
 )
 
@@ -90,17 +89,13 @@ func (forum *Forum) Create() (*Forum, Status) {
 }
 
 func Get(slug string) *Forum {
-	rows, err := db.Query(sqlGetBySlug, slug)
+	rows, _ := db.Query(sqlGetBySlug, slug)
 	defer rows.Close()
-	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
-	}
+
 	if rows.Next() {
 		forum := &Forum{}
-		err = rows.Scan(&forum.Slug, &forum.User, &forum.Title, &forum.Threads, &forum.Posts)
-		if err != nil {
-			singletoneLogger.LogErrorWithStack(err)
-		}
+		rows.Scan(&forum.Slug, &forum.User, &forum.Title, &forum.Threads, &forum.Posts)
+
 		return forum
 	}
 	return nil
@@ -133,16 +128,11 @@ func GetUsers(slug string, limit int, since string, desc bool) (user.UserPointLi
 	} else {
 		fmt.Fprint(&query, " LIMIT 100000+$3")
 	}
-	rows, err := db.Query(query.String(), slug, since, limit)
-	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
-	}
+	rows, _ := db.Query(query.String(), slug, since, limit)
+
 	for rows.Next() {
 		u := &user.User{}
-		err = rows.Scan(&u.Nickname, &u.Email, &u.About, &u.Fullname)
-		if err != nil {
-			singletoneLogger.LogErrorWithStack(err)
-		}
+		rows.Scan(&u.Nickname, &u.Email, &u.About, &u.Fullname)
 		users = append(users, u)
 	}
 	rows.Close()
@@ -155,7 +145,6 @@ func IsForumExists(slug string) bool {
 		return false
 	}
 	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
 		return false
 	}
 	return true
@@ -188,7 +177,6 @@ func InsertMapIntoUserForum(tx *sql.Tx, slug string, users map[string]bool) {
 	fmt.Fprintf(&query, " ON CONFLICT DO NOTHING")
 	_, err := tx.Exec(query.String(), args...)
 	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
 		tx.Rollback()
 	}
 }
@@ -196,7 +184,6 @@ func InsertMapIntoUserForum(tx *sql.Tx, slug string, users map[string]bool) {
 func InsertIntoUserForum(tx *sql.Tx, slug string, user string) {
 	_, err := tx.Exec(sqlInsertUserForum, slug, user)
 	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
 		tx.Rollback()
 	}
 }

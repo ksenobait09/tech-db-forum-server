@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"sync/atomic"
 	"tech-db-server/app/database"
-	"tech-db-server/app/singletoneLogger"
 )
 
 var db *sql.DB
@@ -54,10 +53,7 @@ CROSS JOIN (SELECT COUNT(*) FROM "forums") as forums
 CROSS JOIN (SELECT COUNT(*) FROM "posts") as posts`
 
 func ClearDatabase() {
-	_, err := db.Exec(sqlClear)
-	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
-	}
+	 db.Exec(sqlClear)
 	resetThreadsCount()
 	resetPostsCount()
 	resetForumsCount()
@@ -65,18 +61,12 @@ func ClearDatabase() {
 }
 
 func initStatus() {
-	err := db.QueryRow(sqlCounts).Scan(UsersCount, ThreadsCount, ForumsCount, PostsCount)
-	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
-	}
+	db.QueryRow(sqlCounts).Scan(UsersCount, ThreadsCount, ForumsCount, PostsCount)
 }
 
 func getStatus() *Status {
 	status := &Status{}
-	err := db.QueryRow(sqlCounts).Scan(&status.User, &status.Thread, &status.Forum, &status.Post)
-	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
-	}
+	 db.QueryRow(sqlCounts).Scan(&status.User, &status.Thread, &status.Forum, &status.Post)
 	return status
 }
 func GetStatus() *Status {

@@ -3,15 +3,12 @@ package handlers
 import (
 	"github.com/valyala/fasthttp"
 	"tech-db-server/app/models/forum"
-	"tech-db-server/app/singletoneLogger"
 )
 
 func CreateForum(ctx *fasthttp.RequestCtx) {
 	f := &forum.Forum{}
-	err := f.UnmarshalJSON(ctx.PostBody())
-	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
-	}
+	f.UnmarshalJSON(ctx.PostBody())
+
 	f, status := f.Create()
 	switch status {
 	case forum.StatusOk:

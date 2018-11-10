@@ -4,14 +4,10 @@ import (
 	"encoding/json"
 	"github.com/valyala/fasthttp"
 	error2 "tech-db-server/app/models/error"
-	"tech-db-server/app/singletoneLogger"
 )
 
 func generateMessageJSON(responseMessage json.Marshaler) []byte {
-	responseMessageJSON, err := responseMessage.MarshalJSON()
-	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
-	}
+	responseMessageJSON, _ := responseMessage.MarshalJSON()
 	return responseMessageJSON
 }
 

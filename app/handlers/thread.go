@@ -5,7 +5,6 @@ import (
 	"github.com/valyala/fasthttp"
 	"strconv"
 	"tech-db-server/app/models/thread"
-	"tech-db-server/app/singletoneLogger"
 )
 
 func getThreadSlugOrId(ctx *fasthttp.RequestCtx) (string, int) {
@@ -17,10 +16,7 @@ func getThreadSlugOrId(ctx *fasthttp.RequestCtx) (string, int) {
 func CreateThreadAtForum(ctx *fasthttp.RequestCtx) {
 	t := &thread.Thread{}
 	t.Forum = ctx.UserValue("slug").(string)
-	err := t.UnmarshalJSON(ctx.PostBody())
-	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
-	}
+	t.UnmarshalJSON(ctx.PostBody())
 	status := t.Create()
 	switch status {
 	case thread.StatusOk:
@@ -45,10 +41,7 @@ func GetThreadDetails(ctx *fasthttp.RequestCtx) {
 
 func UpdateThreadDetails(ctx *fasthttp.RequestCtx) {
 	update := &thread.ThreadUpdate{}
-	err := update.UnmarshalJSON(ctx.PostBody())
-	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
-	}
+	update.UnmarshalJSON(ctx.PostBody())
 	slug, id := getThreadSlugOrId(ctx)
 	t := update.Update(slug, id)
 	if t != nil {
@@ -66,11 +59,8 @@ func GetForumThreads(ctx *fasthttp.RequestCtx) {
 	rawSince := ctx.QueryArgs().Peek("since")
 	if rawSince != nil {
 		datetime := strfmt.NewDateTime()
-		err := datetime.UnmarshalText(rawSince)
+		datetime.UnmarshalText(rawSince)
 		since = &datetime
-		if err != nil {
-			singletoneLogger.LogErrorWithStack(err)
-		}
 	}
 	threads, status := thread.GetByForumSlug(slug, limit, since, desc)
 	if status == thread.StatusUserOrForumNotExist {
@@ -82,10 +72,7 @@ func GetForumThreads(ctx *fasthttp.RequestCtx) {
 
 func VoteThread(ctx *fasthttp.RequestCtx) {
 	vote := &thread.Vote{}
-	err := vote.UnmarshalJSON(ctx.PostBody())
-	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
-	}
+	vote.UnmarshalJSON(ctx.PostBody())
 	slug, id := getThreadSlugOrId(ctx)
 	t := thread.VoteForThread(slug, id, vote)
 	if t != nil {

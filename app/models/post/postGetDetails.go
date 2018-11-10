@@ -6,7 +6,6 @@ import (
 	"tech-db-server/app/models/forum"
 	"tech-db-server/app/models/thread"
 	"tech-db-server/app/models/user"
-	"tech-db-server/app/singletoneLogger"
 )
 
 const sqlGetPostData = `
@@ -52,9 +51,6 @@ func PostDetails(id int64, related []string) *PostFull {
 	t.Slug = slugNullable.String
 	if err == sql.ErrNoRows {
 		return nil
-	}
-	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
 	}
 	data := &PostFull{Post: post}
 	if getAuthor {

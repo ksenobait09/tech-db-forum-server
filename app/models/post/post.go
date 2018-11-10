@@ -11,7 +11,6 @@ import (
 	forumModel "tech-db-server/app/models/forum"
 	"tech-db-server/app/models/thread"
 	"tech-db-server/app/models/user"
-	"tech-db-server/app/singletoneLogger"
 	"tech-db-server/app/models/service"
 )
 
@@ -138,23 +137,18 @@ const sqlGetPostsParentTree = `
 
 func CreatePosts(threadSlug string, threadId int, posts PostPointList) (Status, PostPointList) {
 	postsLen := len(posts)
-	tx, err := db.Begin()
+	tx, _ := db.Begin()
 	defer tx.Rollback()
-	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
-	}
 	var forum string
 	//Проверка существования thread
 	if threadId == 0 {
-		err = tx.QueryRow(sqlGetThreadIdAndForumBySlug, threadSlug).Scan(&threadId, &forum)
+		err := tx.QueryRow(sqlGetThreadIdAndForumBySlug, threadSlug).Scan(&threadId, &forum)
 		if err != nil {
-			singletoneLogger.LogErrorWithStack(err)
 			return StatusNotExist, nil
 		}
 	} else {
-		err = tx.QueryRow(sqlGetThreadIdAndForumById, threadId).Scan(&threadId, &forum)
+		err := tx.QueryRow(sqlGetThreadIdAndForumById, threadId).Scan(&threadId, &forum)
 		if err != nil {
-			singletoneLogger.LogErrorWithStack(err)
 			return StatusNotExist, nil
 		}
 	}
@@ -177,18 +171,12 @@ func CreatePosts(threadSlug string, threadId int, posts PostPointList) (Status, 
 	}
 	if len(parentIds) > 0 {
 		returnedPostsCount := 0
-		rows, err := tx.Query(fmt.Sprintf(sqlGetIdAndPathOfPostsInThread, strings.Join(parentIds, ", ")), threadId)
-		if err != nil {
-			singletoneLogger.LogErrorWithStack(err)
-		}
+		rows, _ := tx.Query(fmt.Sprintf(sqlGetIdAndPathOfPostsInThread, strings.Join(parentIds, ", ")), threadId)
 		for rows.Next() {
 			returnedPostsCount++
 			var id int64
 			var path []int64
-			err = rows.Scan(&id, pq.Array(&path))
-			if err != nil {
-				singletoneLogger.LogErrorWithStack(err)
-			}
+			_ = rows.Scan(&id, pq.Array(&path))
 			mapOfParentPathsById[id] = path
 		}
 		rows.Close()
@@ -202,25 +190,18 @@ func CreatePosts(threadSlug string, threadId int, posts PostPointList) (Status, 
 	//взятие id для постов
 	postIdsRows, err := tx.Query(fmt.Sprintf(sqlGetNextIds, postsLen))
 	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
 		return StatusNotExist, nil
 	}
 	var postIds []int64
 	for postIdsRows.Next() {
 		var availableId int64
-		err = postIdsRows.Scan(&availableId)
-		if err != nil {
-			singletoneLogger.LogErrorWithStack(err)
-		}
+		_ = postIdsRows.Scan(&availableId)
 		postIds = append(postIds, availableId)
 	}
 	postIdsRows.Close()
 
 	// сохранение постов
-	stmt, err := tx.Prepare(pq.CopyIn("posts", "id", "author", "forum", "message", "parent", "path", "rootparent", "thread"))
-	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
-	}
+	stmt, _ := tx.Prepare(pq.CopyIn("posts", "id", "author", "forum", "message", "parent", "path", "rootparent", "thread"))
 	for i, post := range posts {
 		post.ID = postIds[i]
 		post.Forum = forum
@@ -234,23 +215,19 @@ func CreatePosts(threadSlug string, threadId int, posts PostPointList) (Status, 
 		}
 		_, err = stmt.Exec(post.ID, post.Author, post.Forum, post.Message, post.Parent, pq.Array(post.Path), post.RootParent, post.Thread)
 		if err != nil {
-			singletoneLogger.LogErrorWithStack(err)
 			return StatusNotExist, nil
 		}
 	}
 	_, err = stmt.Exec()
 	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
 		return StatusNotExist, nil
 	}
 	err = stmt.Close()
 	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
 		return StatusNotExist, nil
 	}
 	_, err = tx.Exec(sqlUpdatePostsCount, postsLen, forum)
 	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
 		return StatusNotExist, nil
 	}
 	// userforum
@@ -258,14 +235,12 @@ func CreatePosts(threadSlug string, threadId int, posts PostPointList) (Status, 
 
 	err = tx.Commit()
 	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
 		return StatusNotExist, nil
 	}
 	// Взять время создания постов
 	created := strfmt.NewDateTime()
 	err = db.QueryRow(sqlGetCreatedFromPost, posts[0].ID).Scan(&created)
 	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
 		return StatusNotExist, nil
 	}
 	for _, post := range posts {
@@ -282,18 +257,12 @@ func (post *Post) Update() Status {
 		if err == sql.ErrNoRows {
 			return StatusNotExist
 		}
-		if err != nil {
-			singletoneLogger.LogErrorWithStack(err)
-		}
 		return StatusOK
 	}
 	err := db.QueryRow(sqlUpdate, post.Message, post.Message, post.ID).
 		Scan(&post.Author, &post.Created, &post.Forum, &post.Parent, &post.Thread, &post.IsEdited)
 	if err == sql.ErrNoRows {
 		return StatusNotExist
-	}
-	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
 	}
 	return StatusOK
 }
@@ -366,16 +335,10 @@ func GetPosts(id int, limit int, since int, sort string, desc bool) PostPointLis
 			fmt.Fprint(&query, " ORDER BY p.path")
 		}
 	}
-	rows, err := db.Query(query.String(), id, since, limit)
-	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
-	}
+	rows, _ := db.Query(query.String(), id, since, limit)
 	for rows.Next() {
 		post := &Post{}
-		err = rows.Scan(&post.Author, &post.Created, &post.Forum, &post.IsEdited, &post.Message, &post.Parent, &post.Thread, &post.ID)
-		if err != nil {
-			singletoneLogger.LogErrorWithStack(err)
-		}
+		_ = rows.Scan(&post.Author, &post.Created, &post.Forum, &post.IsEdited, &post.Message, &post.Parent, &post.Thread, &post.ID)
 		posts = append(posts, post)
 	}
 	rows.Close()

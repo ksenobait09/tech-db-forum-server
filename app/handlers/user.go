@@ -3,15 +3,12 @@ package handlers
 import (
 	"github.com/valyala/fasthttp"
 	"tech-db-server/app/models/user"
-	"tech-db-server/app/singletoneLogger"
 )
 
 func CreateUser(ctx *fasthttp.RequestCtx) {
 	u := user.User{}
-	err := u.UnmarshalJSON(ctx.PostBody())
-	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
-	}
+	 u.UnmarshalJSON(ctx.PostBody())
+
 	u.Nickname = ctx.UserValue("nickname").(string)
 	createdUser, existedUsers := u.Create()
 	if createdUser != nil {
@@ -34,10 +31,8 @@ func GetUser(ctx *fasthttp.RequestCtx) {
 func UpdateUser(ctx *fasthttp.RequestCtx) {
 	nickname := ctx.UserValue("nickname").(string)
 	userUpdate := user.UserUpdate{}
-	err := userUpdate.UnmarshalJSON(ctx.PostBody())
-	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
-	}
+	 userUpdate.UnmarshalJSON(ctx.PostBody())
+
 	u, status := user.Update(nickname, &userUpdate)
 	if status == user.StatusOk {
 		response(ctx, u, fasthttp.StatusOK)

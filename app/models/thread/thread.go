@@ -6,7 +6,6 @@ import (
 	"github.com/go-openapi/strfmt"
 	"tech-db-server/app/database"
 	"tech-db-server/app/models/forum"
-	"tech-db-server/app/singletoneLogger"
 	"tech-db-server/app/models/service"
 )
 
@@ -199,7 +198,6 @@ func (thread *Thread) Create() Status {
 	}
 	_, err = tx.Exec(sqlUpdateThreadsCount, thread.Forum)
 	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
 		return StatusUserOrForumNotExist
 	}
 	forum.InsertIntoUserForum(tx, thread.Forum, thread.Author)
@@ -210,23 +208,17 @@ func (thread *Thread) Create() Status {
 
 func (thread *Thread) Get(slug string, id int) Status {
 	var rows *sql.Rows
-	var err error
+
 	if id != 0 {
-		rows, err = db.Query(sqlGetById, id)
+		rows, _ = db.Query(sqlGetById, id)
 	} else {
-		rows, err = db.Query(sqlGetBySlug, slug)
+		rows, _ = db.Query(sqlGetBySlug, slug)
 	}
 	defer rows.Close()
-	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
-	}
 	if rows.Next() {
 		slugNullable := &sql.NullString{}
-		err = rows.Scan(&thread.Author, &thread.Created, &thread.Forum, &thread.Message, slugNullable, &thread.Title, &thread.ID, &thread.Votes)
+		rows.Scan(&thread.Author, &thread.Created, &thread.Forum, &thread.Message, slugNullable, &thread.Title, &thread.ID, &thread.Votes)
 		thread.Slug = slugNullable.String
-		if err != nil {
-			singletoneLogger.LogErrorWithStack(err)
-		}
 		return StatusOk
 	}
 	return StatusNotFound
@@ -245,9 +237,6 @@ func (update *ThreadUpdate) Update(slug string, id int) *Thread {
 	if err == sql.ErrNoRows {
 		return nil
 	}
-	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
-	}
 	return thread
 }
 
@@ -260,7 +249,6 @@ func GetByForumSlug(slug string, limit int, since *strfmt.DateTime, desc bool) (
 	var sinceCondition string
 	var orderCondition string
 	var rows *sql.Rows
-	var err error
 	if desc {
 		orderCondition = "ORDER BY created DESC"
 	} else {
@@ -277,21 +265,15 @@ func GetByForumSlug(slug string, limit int, since *strfmt.DateTime, desc bool) (
 		} else {
 			sinceCondition = "AND created >= $3"
 		}
-		rows, err = db.Query(fmt.Sprintf("%s %s %s %s", sqlGetByForumSlug, sinceCondition, orderCondition, limitCondition), slug, limit, since)
+		rows, _ = db.Query(fmt.Sprintf("%s %s %s %s", sqlGetByForumSlug, sinceCondition, orderCondition, limitCondition), slug, limit, since)
 	} else {
-		rows, err = db.Query(fmt.Sprintf("%s %s %s", sqlGetByForumSlug, orderCondition, limitCondition), slug, limit)
-	}
-
-	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
+		rows, _ = db.Query(fmt.Sprintf("%s %s %s", sqlGetByForumSlug, orderCondition, limitCondition), slug, limit)
 	}
 	slugNullable := &sql.NullString{}
 	for rows.Next() {
 		thread := &Thread{}
-		err = rows.Scan(&thread.Author, &thread.Created, &thread.Forum, &thread.Message, slugNullable, &thread.Title, &thread.ID, &thread.Votes)
-		if err != nil {
-			singletoneLogger.LogErrorWithStack(err)
-		}
+		rows.Scan(&thread.Author, &thread.Created, &thread.Forum, &thread.Message, slugNullable, &thread.Title, &thread.ID, &thread.Votes)
+
 		thread.Slug = slugNullable.String
 		threads = append(threads, thread)
 	}
@@ -303,7 +285,6 @@ func VoteForThread(slug string, id int, vote *Vote) *Thread {
 	tx, err := db.Begin()
 	defer tx.Rollback()
 	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
 		return nil
 	}
 	prevVoice := &sql.NullInt64{}
@@ -316,7 +297,6 @@ func VoteForThread(slug string, id int, vote *Vote) *Thread {
 		err = tx.QueryRow(sqlSelectThreadAndVoteBySlug, slug, vote.Nickname).Scan(prevVoice, threadId, &threadVotes, userNickname)
 	}
 	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
 		return nil
 	}
 	if !threadId.Valid || !userNickname.Valid {
@@ -331,7 +311,6 @@ func VoteForThread(slug string, id int, vote *Vote) *Thread {
 	}
 	newVotes := threadVotes.Int64 + (int64(vote.Voice) - prevVoiceInt)
 	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
 		return nil
 	}
 	thread := &Thread{}
@@ -339,7 +318,6 @@ func VoteForThread(slug string, id int, vote *Vote) *Thread {
 	err = tx.QueryRow(sqlUpdateThreadVotes, newVotes, threadId.Int64).Scan(&thread.Author, &thread.Created, &thread.Forum, &thread.Message, slugNullable, &thread.Title, &thread.ID, &thread.Votes)
 	thread.Slug = slugNullable.String
 	if err != nil {
-		singletoneLogger.LogErrorWithStack(err)
 		return nil
 	}
 	tx.Commit()
@@ -350,13 +328,11 @@ func GetThreadId(slug string, id int) int {
 	if id == 0 {
 		err := db.QueryRow(sqlGetThreadIdBySlug, slug).Scan(&id)
 		if err != nil {
-			singletoneLogger.LogErrorWithStack(err)
 			return 0
 		}
 	} else {
 		err := db.QueryRow(sqlGetThreadIdById, id).Scan(&id)
 		if err != nil {
-			singletoneLogger.LogErrorWithStack(err)
 			return 0
 		}
 	}
