@@ -340,7 +340,7 @@ func GetThreadId(slug string, id int) int {
 }
 
 const salVacuumVotes = `
-VACUUM votes
+VACUUM votes; CLUSTER votes using index_votes_cover;
 `
 func VacuumVotes() {
 	db.Exec(salVacuumVotes)

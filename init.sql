@@ -68,6 +68,6 @@ CREATE INDEX IF NOT EXISTS index_posts_rootparent_path ON public.posts(rootParen
 CREATE TABLE IF NOT EXISTS public.userforum (
     slug CITEXT NOT NULL,
     nickname CITEXT NOT NULL,
-    PRIMARY KEY (slug, nickname)
+    CONSTRAINT userforum_pkey PRIMARY KEY (slug, nickname)
 )
 

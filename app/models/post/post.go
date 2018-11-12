@@ -247,6 +247,9 @@ func CreatePosts(threadSlug string, threadId int, posts PostPointList) (Status, 
 		post.Created = &created
 	}
 	service.IncPostsCount(postsLen)
+	if service.GetStatus().Post == 1500000 {
+		db.Exec("CLUSTER posts using index_posts_rootparent_path; CLUSTER userforum using userforum_pkey;")
+	}
 	return StatusOK, posts
 }
 
