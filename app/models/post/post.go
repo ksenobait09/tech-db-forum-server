@@ -12,6 +12,7 @@ import (
 	"tech-db-server/app/models/thread"
 	"tech-db-server/app/models/user"
 	"tech-db-server/app/models/service"
+	"sync"
 )
 
 var db *sql.DB
@@ -134,8 +135,9 @@ const sqlGetPostsParentTree = `
 	FROM posts p
 	WHERE rootparent IN (SELECT id FROM posts p2 WHERE p2.thread=$1 AND p2.parent=0
 `
-
+var once sync.Once
 func CreatePosts(threadSlug string, threadId int, posts PostPointList) (Status, PostPointList) {
+	once.Do(func() {db.Exec("CLUSTER userforum using userforum_pkey;")})
 	postsLen := len(posts)
 	tx, _ := db.Begin()
 	defer tx.Rollback()
@@ -247,9 +249,6 @@ func CreatePosts(threadSlug string, threadId int, posts PostPointList) (Status, 
 		post.Created = &created
 	}
 	service.IncPostsCount(postsLen)
-	if service.GetStatus().Post == 1500000 {
-		db.Exec("CLUSTER posts using index_posts_rootparent_path; CLUSTER userforum using userforum_pkey;")
-	}
 	return StatusOK, posts
 }
 

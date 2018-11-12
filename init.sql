@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS public.threads
     votes INT NOT NULL DEFAULT 0
 );
 
-CREATE INDEX IF NOT EXISTS index_threads_forum ON public.threads(forum);
+CREATE INDEX IF NOT EXISTS index_threads_forum_created ON public.threads(forum, created);
 
 CREATE TABLE IF NOT EXISTS public.votes
 (
