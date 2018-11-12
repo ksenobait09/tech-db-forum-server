@@ -54,7 +54,6 @@ const sqlGetBySlug = `
 	SELECT slug, "user", title, threads, posts FROM forums
 	WHERE slug = $1`
 
-const sqlGetUsers = ``
 
 const sqlSelectUserForum = `
 	SELECT u.nickname, u.email, u.about, u.fullname

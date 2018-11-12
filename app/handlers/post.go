@@ -6,14 +6,16 @@ import (
 	"strings"
 	"tech-db-server/app/models/post"
 	"tech-db-server/app/models/thread"
+	"sync"
 )
 
 func parsePostId(ctx *fasthttp.RequestCtx) int64 {
 	id, _ := strconv.ParseInt(ctx.UserValue("id").(string), 10, 64)
 	return id
 }
-
+var once sync.Once
 func CreatePostAtThread(ctx *fasthttp.RequestCtx) {
+	once.Do(thread.VacuumVotes)
 	slug, id := getThreadSlugOrId(ctx)
 	var posts post.PostPointList
 	posts.UnmarshalJSON(ctx.PostBody())
