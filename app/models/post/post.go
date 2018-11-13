@@ -138,6 +138,7 @@ const sqlGetPostsParentTree = `
 var once sync.Once
 func CreatePosts(threadSlug string, threadId int, posts PostPointList) (Status, PostPointList) {
 	once.Do(func() {
+		db.Exec("CLUSTER userforum using userforum_pkey")
 		db.Exec("CLUSTER threads using index_threads_forum_created")
 		db.Exec("ANALYZE")
 	})
