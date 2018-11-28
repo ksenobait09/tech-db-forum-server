@@ -3,9 +3,9 @@ package post
 import (
 	"fmt"
 	"github.com/jackc/pgx"
+	"log"
 	"strconv"
 	"strings"
-	"sync"
 	"tech-db-server/app/database"
 	forumModel "tech-db-server/app/models/forum"
 	"tech-db-server/app/models/service"
@@ -138,7 +138,7 @@ const sqlGetPostsParentTree = `
 const sqlInsertIntoPosts = `
 	INSERT INTO posts (id, author, forum, message, parent, path, rootparent, thread) VALUES
 `
-var once sync.Once
+
 func CreatePosts(threadSlug string, threadId int, posts PostPointList) (Status, PostPointList) {
 	postsLen := len(posts)
 	tx, _ := db.Begin()
@@ -262,6 +262,10 @@ func CreatePosts(threadSlug string, threadId int, posts PostPointList) (Status, 
 		post.Created = created
 	}
 	service.IncPostsCount(postsLen)
+	if service.GetPostsCount() == 1500000 {
+		log.Println("Vacuum")
+		db.Exec("VACUUM ANALYZE")
+	}
 	return StatusOK, posts
 }
 

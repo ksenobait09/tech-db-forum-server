@@ -93,6 +93,9 @@ func IncUsersCount(increment int) {
 	atomic.AddInt32(UsersCount, int32(increment))
 }
 
+func GetPostsCount () int {
+	return atomic.LoadInt32(PostsCount)
+}
 func resetThreadsCount() {
 	atomic.StoreInt32(ThreadsCount, 0)
 }

@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"github.com/valyala/fasthttp"
-	"log"
 	"strconv"
 	"strings"
 	"sync"
@@ -19,8 +18,6 @@ func CreatePostAtThread(ctx *fasthttp.RequestCtx) {
 	slug, id := getThreadSlugOrId(ctx)
 	var posts post.PostPointList
 	err := posts.UnmarshalJSON(ctx.PostBody())
-
-	log.Print(err)
 	status, posts := post.CreatePosts(slug, id, posts)
 	switch status {
 	case post.StatusOK:
