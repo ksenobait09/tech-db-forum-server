@@ -1,21 +1,20 @@
 package post
 
 import (
-	"database/sql"
 	"fmt"
-	"github.com/go-openapi/strfmt"
-	"github.com/lib/pq"
+	"github.com/jackc/pgx"
 	"strconv"
 	"strings"
+	"sync"
 	"tech-db-server/app/database"
 	forumModel "tech-db-server/app/models/forum"
+	"tech-db-server/app/models/service"
 	"tech-db-server/app/models/thread"
 	"tech-db-server/app/models/user"
-	"tech-db-server/app/models/service"
-	"sync"
+	"time"
 )
 
-var db *sql.DB
+var db *pgx.ConnPool
 
 func init() {
 	db = database.GetInstance()
@@ -41,7 +40,7 @@ type Post struct {
 	// Дата создания сообщения на форуме.
 	// Read Only: true
 	// Format: date-time
-	Created *strfmt.DateTime `json:"created,omitempty"`
+	Created time.Time `json:"created,omitempty"`
 
 	// Идентификатор форума (slug) данного сообещния.
 	// Read Only: true
@@ -49,7 +48,7 @@ type Post struct {
 
 	// Идентификатор данного сообщения.
 	// Read Only: true
-	ID int64 `json:"id,omitempty"`
+	ID int32 `json:"id,omitempty"`
 
 	// Истина, если данное сообщение было изменено.
 	// Read Only: true
@@ -61,15 +60,15 @@ type Post struct {
 
 	// Идентификатор родительского сообщения (0 - корневое сообщение обсуждения).
 	//
-	Parent int64 `json:"parent,omitempty"`
+	Parent int32 `json:"parent,omitempty"`
 
 	// Идентификатор ветви (id) обсуждения данного сообещния.
 	// Read Only: true
 	Thread int `json:"thread,omitempty"`
 
-	Path pq.Int64Array `json:"-"`
+	Path []int32 `json:"-"`
 
-	RootParent int64 `json:"-"`
+	RootParent int32 `json:"-"`
 }
 
 type Status int
@@ -135,13 +134,12 @@ const sqlGetPostsParentTree = `
 	FROM posts p
 	WHERE rootparent IN (SELECT id FROM posts p2 WHERE p2.thread=$1 AND p2.parent=0
 `
+
+const sqlInsertIntoPosts = `
+	INSERT INTO posts (id, author, forum, message, parent, path, rootparent, thread) VALUES
+`
 var once sync.Once
 func CreatePosts(threadSlug string, threadId int, posts PostPointList) (Status, PostPointList) {
-	once.Do(func() {
-		db.Exec("CLUSTER userforum using userforum_pkey")
-		db.Exec("CLUSTER threads using index_threads_forum_created")
-		db.Exec("ANALYZE")
-	})
 	postsLen := len(posts)
 	tx, _ := db.Begin()
 	defer tx.Rollback()
@@ -162,7 +160,7 @@ func CreatePosts(threadSlug string, threadId int, posts PostPointList) (Status, 
 		return StatusOK, posts
 	}
 	// Взять path родительских постов и authormap
-	mapOfParentPathsById := make(map[int64][]int64)
+	mapOfParentPathsById := make(map[int32][]int32)
 	mapOfAuthors := make(map[string]bool)
 	for _, post := range posts {
 		if post.Parent != 0 {
@@ -173,16 +171,16 @@ func CreatePosts(threadSlug string, threadId int, posts PostPointList) (Status, 
 
 	var parentIds []string
 	for parentId := range mapOfParentPathsById {
-		parentIds = append(parentIds, strconv.FormatInt(parentId, 10))
+		parentIds = append(parentIds, strconv.Itoa(int(parentId)))
 	}
 	if len(parentIds) > 0 {
 		returnedPostsCount := 0
 		rows, _ := tx.Query(fmt.Sprintf(sqlGetIdAndPathOfPostsInThread, strings.Join(parentIds, ", ")), threadId)
 		for rows.Next() {
 			returnedPostsCount++
-			var id int64
-			var path []int64
-			_ = rows.Scan(&id, pq.Array(&path))
+			var id int32
+			var path []int32
+			_ = rows.Scan(&id, &path)
 			mapOfParentPathsById[id] = path
 		}
 		rows.Close()
@@ -198,37 +196,48 @@ func CreatePosts(threadSlug string, threadId int, posts PostPointList) (Status, 
 	if err != nil {
 		return StatusNotExist, nil
 	}
-	var postIds []int64
+	var postIds []int32
 	for postIdsRows.Next() {
-		var availableId int64
+		var availableId int32
 		_ = postIdsRows.Scan(&availableId)
 		postIds = append(postIds, availableId)
 	}
 	postIdsRows.Close()
 
 	// сохранение постов
-	stmt, _ := tx.Prepare(pq.CopyIn("posts", "id", "author", "forum", "message", "parent", "path", "rootparent", "thread"))
+	var query strings.Builder
+	query.Grow(100)
+	fmt.Fprint(&query, sqlInsertIntoPosts)
+	postMaxId := postsLen - 1
 	for i, post := range posts {
 		post.ID = postIds[i]
 		post.Forum = forum
 		post.Thread = threadId
 		if post.Parent > 0 {
-			post.Path = append(mapOfParentPathsById[post.Parent], post.ID)
+			post.Path = append(mapOfParentPathsById[post.Parent], int32(post.ID))
 			post.RootParent = post.Path[0]
 		} else {
 			post.Path = append(post.Path, post.ID)
 			post.RootParent = post.ID
 		}
-		_, err = stmt.Exec(post.ID, post.Author, post.Forum, post.Message, post.Parent, pq.Array(post.Path), post.RootParent, post.Thread)
-		if err != nil {
-			return StatusNotExist, nil
+		fmt.Fprintf(&query, " (%d, '%s', '%s', '%s', %d, '{",
+			post.ID, post.Author, post.Forum, post.Message, post.Parent)
+		pathMaxId := len(post.Path) - 1
+		for j, node := range post.Path {
+			fmt.Fprintf(&query, "\"%d\"", node)
+			if j != pathMaxId {
+				fmt.Fprint(&query, ",")
+			}
+		}
+		fmt.Fprintf(&query, "}', %d, %d)", post.RootParent, post.Thread)
+		if i != postMaxId  {
+			fmt.Fprint(&query, ",")
 		}
 	}
-	_, err = stmt.Exec()
+	_, err = tx.Exec(query.String())
 	if err != nil {
 		return StatusNotExist, nil
 	}
-	err = stmt.Close()
 	if err != nil {
 		return StatusNotExist, nil
 	}
@@ -244,13 +253,13 @@ func CreatePosts(threadSlug string, threadId int, posts PostPointList) (Status, 
 		return StatusNotExist, nil
 	}
 	// Взять время создания постов
-	created := strfmt.NewDateTime()
+	var created time.Time
 	err = db.QueryRow(sqlGetCreatedFromPost, posts[0].ID).Scan(&created)
 	if err != nil {
 		return StatusNotExist, nil
 	}
 	for _, post := range posts {
-		post.Created = &created
+		post.Created = created
 	}
 	service.IncPostsCount(postsLen)
 	return StatusOK, posts
@@ -260,14 +269,14 @@ func (post *Post) Update() Status {
 	if post.Message == "" {
 		err := db.QueryRow(sqlGet, post.ID).
 			Scan(&post.Author, &post.Created, &post.Forum, &post.IsEdited, &post.Message, &post.Parent, &post.Thread)
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return StatusNotExist
 		}
 		return StatusOK
 	}
 	err := db.QueryRow(sqlUpdate, post.Message, post.Message, post.ID).
 		Scan(&post.Author, &post.Created, &post.Forum, &post.Parent, &post.Thread, &post.IsEdited)
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		return StatusNotExist
 	}
 	return StatusOK

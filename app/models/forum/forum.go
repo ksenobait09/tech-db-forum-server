@@ -3,13 +3,14 @@ package forum
 import (
 	"database/sql"
 	"fmt"
+	"github.com/jackc/pgx"
 	"strings"
 	"tech-db-server/app/database"
 	"tech-db-server/app/models/user"
 	"tech-db-server/app/models/service"
 )
 
-var db *sql.DB
+var db *pgx.ConnPool
 
 func init() {
 	db = database.GetInstance()
@@ -76,7 +77,7 @@ const (
 
 func (forum *Forum) Create() (*Forum, Status) {
 	err := db.QueryRow(sqlInsert, &forum.Slug, &forum.Title, &forum.User, &forum.User).Scan(&forum.User)
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		existedForum := Get(forum.Slug)
 		return existedForum, StatusConflict
 	}
@@ -149,7 +150,7 @@ func IsForumExists(slug string) bool {
 	return true
 }
 
-func InsertMapIntoUserForum(tx *sql.Tx, slug string, users map[string]bool) {
+func InsertMapIntoUserForum(tx *pgx.Tx, slug string, users map[string]bool) {
 	lenUsers := len(users)
 	if lenUsers == 0 {
 		return
@@ -180,7 +181,7 @@ func InsertMapIntoUserForum(tx *sql.Tx, slug string, users map[string]bool) {
 	}
 }
 
-func InsertIntoUserForum(tx *sql.Tx, slug string, user string) {
+func InsertIntoUserForum(tx *pgx.Tx, slug string, user string) {
 	_, err := tx.Exec(sqlInsertUserForum, slug, user)
 	if err != nil {
 		tx.Rollback()

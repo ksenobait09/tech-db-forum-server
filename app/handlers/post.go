@@ -2,23 +2,25 @@ package handlers
 
 import (
 	"github.com/valyala/fasthttp"
+	"log"
 	"strconv"
 	"strings"
+	"sync"
 	"tech-db-server/app/models/post"
 	"tech-db-server/app/models/thread"
-	"sync"
 )
 
-func parsePostId(ctx *fasthttp.RequestCtx) int64 {
-	id, _ := strconv.ParseInt(ctx.UserValue("id").(string), 10, 64)
+func parsePostId(ctx *fasthttp.RequestCtx) int {
+	id, _ := strconv.Atoi(ctx.UserValue("id").(string))
 	return id
 }
 var once sync.Once
 func CreatePostAtThread(ctx *fasthttp.RequestCtx) {
-	once.Do(thread.VacuumVotes)
 	slug, id := getThreadSlugOrId(ctx)
 	var posts post.PostPointList
-	posts.UnmarshalJSON(ctx.PostBody())
+	err := posts.UnmarshalJSON(ctx.PostBody())
+
+	log.Print(err)
 	status, posts := post.CreatePosts(slug, id, posts)
 	switch status {
 	case post.StatusOK:
@@ -47,7 +49,7 @@ func GetThreadPosts(ctx *fasthttp.RequestCtx) {
 func UpdatePostDetails(ctx *fasthttp.RequestCtx) {
 	p := &post.Post{}
 	p.UnmarshalJSON(ctx.PostBody())
-	p.ID = parsePostId(ctx)
+	p.ID = int32(parsePostId(ctx))
 	if p.ID == 0 {
 		responseWithDefaultError(ctx, fasthttp.StatusNotFound)
 		return
@@ -63,7 +65,7 @@ func UpdatePostDetails(ctx *fasthttp.RequestCtx) {
 func GetPostDetails(ctx *fasthttp.RequestCtx) {
 	id := parsePostId(ctx)
 	related := ctx.QueryArgs().Peek("related")
-	data := post.PostDetails(id, strings.Split(string(related), ","))
+	data := post.PostDetails(int32(id), strings.Split(string(related), ","))
 	if data == nil {
 		responseWithDefaultError(ctx, fasthttp.StatusNotFound)
 		return

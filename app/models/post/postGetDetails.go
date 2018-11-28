@@ -1,8 +1,9 @@
 package post
 
 import (
-	"database/sql"
 	"fmt"
+	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/pgtype"
 	"tech-db-server/app/models/forum"
 	"tech-db-server/app/models/thread"
 	"tech-db-server/app/models/user"
@@ -20,7 +21,7 @@ const sqlThreadFields = `
 t.author, t.created, t.forum, t."message", t.slug, t.title, t.id, t.votes
 `
 const sqlThreadFieldsEmpty = `
-'', '', '', '', '', '', 0, 0
+'', NULL, '', '', '', '', 0, 0
 `
 const sqlForumFields = `
 f.slug, f."user", f.title, f.threads, f.posts
@@ -35,21 +36,23 @@ const sqlUserFieldsEmpty = `
 '', '', '', ''
 `
 
-func PostDetails(id int64, related []string) *PostFull {
+func PostDetails(id int32, related []string) *PostFull {
 	post := &Post{}
 	post.ID = id
 	t := &thread.Thread{}
 	f := &forum.Forum{}
 	u := &user.User{}
 	getAuthor, getForum, getThread := parseFlagsFromRelated(related)
-	slugNullable := &sql.NullString{}
+	slugNullable := &pgtype.Varchar{}
+	threadCreatedNullable := pgtype.Timestamptz{}
 	err := db.QueryRow(*buildPostDetailsQuery(getAuthor, getForum, getThread), getThread, getForum, getAuthor, id).
 		Scan(&post.Author, &post.Created, &post.Forum, &post.IsEdited, &post.Message, &post.Parent, &post.Thread,
-			&t.Author, &t.Created, &t.Forum, &t.Message, slugNullable, &t.Title, &t.ID, &t.Votes,
+			&t.Author, &threadCreatedNullable, &t.Forum, &t.Message, slugNullable, &t.Title, &t.ID, &t.Votes,
 			&f.Slug, &f.User, &f.Title, &f.Threads, &f.Posts,
 			&u.About, &u.Email, &u.Fullname, &u.Nickname)
 	t.Slug = slugNullable.String
-	if err == sql.ErrNoRows {
+	t.Created = threadCreatedNullable.Time
+	if err == pgx.ErrNoRows {
 		return nil
 	}
 	data := &PostFull{Post: post}

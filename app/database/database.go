@@ -1,25 +1,29 @@
 package database
 
 import (
-	"database/sql"
-
-	_ "github.com/lib/pq"
+	"github.com/jackc/pgx"
 	"log"
 	"sync"
 )
 
-var db *sql.DB
+var db *pgx.ConnPool
+
 var once sync.Once
 
-func GetInstance() *sql.DB {
+func GetInstance() *pgx.ConnPool {
 	once.Do(func() {
-		connStr := "postgres://docker:docker@localhost/docker?sslmode=disable"
 		var err error
-		db, err = sql.Open("postgres", connStr)
+		db, err = pgx.NewConnPool(pgx.ConnPoolConfig{
+			ConnConfig: pgx.ConnConfig{
+				Host:     "localhost",
+				Port:     5432,
+				User:     "docker",
+				Password: "docker",
+				Database: "docker",
+			},
+			MaxConnections: 50,
+		})
 		if err != nil {
-			log.Fatal(err)
-		}
-		if err = db.Ping(); err != nil {
 			log.Fatal(err)
 		}
 	})

@@ -1,12 +1,12 @@
 package service
 
 import (
-	"database/sql"
+	"github.com/jackc/pgx"
 	"sync/atomic"
 	"tech-db-server/app/database"
 )
 
-var db *sql.DB
+var db *pgx.ConnPool
 
 // atomic
 var ForumsCount *int32

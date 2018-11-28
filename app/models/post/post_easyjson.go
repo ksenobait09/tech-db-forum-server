@@ -4,7 +4,6 @@ package post
 
 import (
 	json "encoding/json"
-	strfmt "github.com/go-openapi/strfmt"
 	easyjson "github.com/mailru/easyjson"
 	jlexer "github.com/mailru/easyjson/jlexer"
 	jwriter "github.com/mailru/easyjson/jwriter"
@@ -260,25 +259,19 @@ func easyjson5a72dc82DecodeTechDbServerAppModelsPost2(in *jlexer.Lexer, out *Pos
 		case "author":
 			out.Author = string(in.String())
 		case "created":
-			if in.IsNull() {
-				in.Skip()
-				out.Created = nil
-			} else {
-				if out.Created == nil {
-					out.Created = new(strfmt.DateTime)
-				}
-				(*out.Created).UnmarshalEasyJSON(in)
+			if data := in.Raw(); in.Ok() {
+				in.AddError((out.Created).UnmarshalJSON(data))
 			}
 		case "forum":
 			out.Forum = string(in.String())
 		case "id":
-			out.ID = int64(in.Int64())
+			out.ID = int32(in.Int32())
 		case "isEdited":
 			out.IsEdited = bool(in.Bool())
 		case "message":
 			out.Message = string(in.String())
 		case "parent":
-			out.Parent = int64(in.Int64())
+			out.Parent = int32(in.Int32())
 		case "thread":
 			out.Thread = int(in.Int())
 		default:
@@ -305,7 +298,7 @@ func easyjson5a72dc82EncodeTechDbServerAppModelsPost2(out *jwriter.Writer, in Po
 		}
 		out.String(string(in.Author))
 	}
-	if in.Created != nil {
+	if true {
 		const prefix string = ",\"created\":"
 		if first {
 			first = false
@@ -313,7 +306,7 @@ func easyjson5a72dc82EncodeTechDbServerAppModelsPost2(out *jwriter.Writer, in Po
 		} else {
 			out.RawString(prefix)
 		}
-		(*in.Created).MarshalEasyJSON(out)
+		out.Raw((in.Created).MarshalJSON())
 	}
 	if in.Forum != "" {
 		const prefix string = ",\"forum\":"
@@ -333,7 +326,7 @@ func easyjson5a72dc82EncodeTechDbServerAppModelsPost2(out *jwriter.Writer, in Po
 		} else {
 			out.RawString(prefix)
 		}
-		out.Int64(int64(in.ID))
+		out.Int32(int32(in.ID))
 	}
 	if in.IsEdited {
 		const prefix string = ",\"isEdited\":"
@@ -363,7 +356,7 @@ func easyjson5a72dc82EncodeTechDbServerAppModelsPost2(out *jwriter.Writer, in Po
 		} else {
 			out.RawString(prefix)
 		}
-		out.Int64(int64(in.Parent))
+		out.Int32(int32(in.Parent))
 	}
 	if in.Thread != 0 {
 		const prefix string = ",\"thread\":"

@@ -10,6 +10,7 @@ require (
 	github.com/go-openapi/strfmt v0.17.0
 	github.com/go-openapi/swag v0.17.0
 	github.com/go-openapi/validate v0.17.0
+	github.com/jackc/pgx v3.2.0+incompatible
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/lib/pq v1.0.0
 	github.com/mailru/easyjson v0.0.0-20180823135443-60711f1a8329

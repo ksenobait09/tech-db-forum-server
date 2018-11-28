@@ -1,12 +1,12 @@
 package user
 
 import (
-	"database/sql"
+	"github.com/jackc/pgx"
 	"tech-db-server/app/database"
 	"tech-db-server/app/models/service"
 )
 
-var db *sql.DB
+var db *pgx.ConnPool
 
 func init() {
 	db = database.GetInstance()
@@ -85,7 +85,7 @@ func (u *User) Create() (user *User, existingUsers UserPointList) {
 	existingUsers = nil
 	user = nil
 	res, _ := db.Exec(sqlInsert, &u.About, &u.Email, &u.Fullname, &u.Nickname)
-	if rows, _ := res.RowsAffected(); rows == 0 {
+	if rows := res.RowsAffected(); rows == 0 {
 		rows, _ := db.Query(sqlGetByEmailAndNickname, u.Email, u.Nickname)
 		existingUsers = make(UserPointList, 0, 1)
 		for rows.Next() {
@@ -117,7 +117,7 @@ func Update(nickname string, updateData *UserUpdate) (*User, Status) {
 	if err != nil {
 		return nil, StatusConflict
 	}
-	rows, _ := res.RowsAffected()
+	rows:= res.RowsAffected()
 	if rows == 0 {
 		return nil, StatusNotExist
 	}

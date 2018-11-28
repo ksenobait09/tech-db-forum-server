@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"github.com/go-openapi/strfmt"
 	"github.com/valyala/fasthttp"
 	"strconv"
 	"tech-db-server/app/models/thread"
@@ -55,13 +54,7 @@ func GetForumThreads(ctx *fasthttp.RequestCtx) {
 	slug := ctx.UserValue("slug").(string)
 	limit := ctx.QueryArgs().GetUintOrZero("limit")
 	desc := ctx.QueryArgs().GetBool("desc")
-	var since *strfmt.DateTime
-	rawSince := ctx.QueryArgs().Peek("since")
-	if rawSince != nil {
-		datetime := strfmt.NewDateTime()
-		datetime.UnmarshalText(rawSince)
-		since = &datetime
-	}
+	since := string(ctx.QueryArgs().Peek("since"))
 	threads, status := thread.GetByForumSlug(slug, limit, since, desc)
 	if status == thread.StatusUserOrForumNotExist {
 		responseWithDefaultError(ctx, fasthttp.StatusNotFound)

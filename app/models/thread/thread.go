@@ -1,15 +1,16 @@
 package thread
 
 import (
-	"database/sql"
 	"fmt"
-	"github.com/go-openapi/strfmt"
+	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/pgtype"
 	"tech-db-server/app/database"
 	"tech-db-server/app/models/forum"
 	"tech-db-server/app/models/service"
+	"time"
 )
 
-var db *sql.DB
+var db *pgx.ConnPool
 
 func init() {
 	db = database.GetInstance()
@@ -26,7 +27,7 @@ type Thread struct {
 
 	// Дата создания ветки на форуме.
 	// Format: date-time
-	Created *strfmt.DateTime `json:"created,omitempty"`
+	Created time.Time `json:"created,omitempty"`
 
 	// Форум, в котором расположена данная ветка обсуждения.
 	// Read Only: true
@@ -179,8 +180,11 @@ const (
 	StatusNotFound
 )
 
-func createSqlNullString(str string) *sql.NullString {
-	return &sql.NullString{String: str, Valid: str != ""}
+func createSqlNullString(str string) *pgtype.Varchar {
+	if str == "" {
+		return &pgtype.Varchar{String: str, Status: pgtype.Null}
+	}
+	return &pgtype.Varchar{String: str, Status: pgtype.Present}
 }
 
 func (thread *Thread) Create() Status {
@@ -189,7 +193,7 @@ func (thread *Thread) Create() Status {
 	slugNullable := createSqlNullString(thread.Slug)
 	err = tx.QueryRow(sqlInsert, &thread.Author, &thread.Created, &thread.Forum, &thread.Message, slugNullable, &thread.Title, &thread.Author, &thread.Forum).Scan(&thread.Author, &thread.Created, &thread.Forum, &thread.Message, slugNullable, &thread.Title, &thread.ID)
 	thread.Slug = slugNullable.String
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		thread.Get(thread.Slug, 0)
 		return StatusConflict
 	}
@@ -207,7 +211,7 @@ func (thread *Thread) Create() Status {
 }
 
 func (thread *Thread) Get(slug string, id int) Status {
-	var rows *sql.Rows
+	var rows *pgx.Rows
 
 	if id != 0 {
 		rows, _ = db.Query(sqlGetById, id)
@@ -216,7 +220,7 @@ func (thread *Thread) Get(slug string, id int) Status {
 	}
 	defer rows.Close()
 	if rows.Next() {
-		slugNullable := &sql.NullString{}
+		slugNullable := &pgtype.Varchar{}
 		rows.Scan(&thread.Author, &thread.Created, &thread.Forum, &thread.Message, slugNullable, &thread.Title, &thread.ID, &thread.Votes)
 		thread.Slug = slugNullable.String
 		return StatusOk
@@ -227,20 +231,20 @@ func (thread *Thread) Get(slug string, id int) Status {
 func (update *ThreadUpdate) Update(slug string, id int) *Thread {
 	thread := &Thread{}
 	var err error
-	slugNullable := &sql.NullString{}
+	slugNullable := &pgtype.Varchar{}
 	if id != 0 {
 		err = db.QueryRow(sqlUpdateById, update.Message, update.Title, id).Scan(&thread.Author, &thread.Created, &thread.Forum, &thread.Message, slugNullable, &thread.Title, &thread.ID, &thread.Votes)
 	} else {
 		err = db.QueryRow(sqlUpdateBySlug, update.Message, update.Title, slug).Scan(&thread.Author, &thread.Created, &thread.Forum, &thread.Message, slugNullable, &thread.Title, &thread.ID, &thread.Votes)
 	}
 	thread.Slug = slugNullable.String
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		return nil
 	}
 	return thread
 }
 
-func GetByForumSlug(slug string, limit int, since *strfmt.DateTime, desc bool) (ThreadPointList, Status) {
+func GetByForumSlug(slug string, limit int, since string, desc bool) (ThreadPointList, Status) {
 	if forum.Get(slug) == nil {
 		return nil, StatusUserOrForumNotExist
 	}
@@ -248,7 +252,7 @@ func GetByForumSlug(slug string, limit int, since *strfmt.DateTime, desc bool) (
 	var limitCondition string
 	var sinceCondition string
 	var orderCondition string
-	var rows *sql.Rows
+	var rows *pgx.Rows
 	if desc {
 		orderCondition = "ORDER BY created DESC"
 	} else {
@@ -259,7 +263,7 @@ func GetByForumSlug(slug string, limit int, since *strfmt.DateTime, desc bool) (
 	} else {
 		limitCondition = ""
 	}
-	if since != nil {
+	if since != "" {
 		if desc == true {
 			sinceCondition = "AND created <= $3"
 		} else {
@@ -269,7 +273,7 @@ func GetByForumSlug(slug string, limit int, since *strfmt.DateTime, desc bool) (
 	} else {
 		rows, _ = db.Query(fmt.Sprintf("%s %s %s", sqlGetByForumSlug, orderCondition, limitCondition), slug, limit)
 	}
-	slugNullable := &sql.NullString{}
+	slugNullable := &pgtype.Varchar{}
 	for rows.Next() {
 		thread := &Thread{}
 		rows.Scan(&thread.Author, &thread.Created, &thread.Forum, &thread.Message, slugNullable, &thread.Title, &thread.ID, &thread.Votes)
@@ -287,35 +291,36 @@ func VoteForThread(slug string, id int, vote *Vote) *Thread {
 	if err != nil {
 		return nil
 	}
-	prevVoice := &sql.NullInt64{}
-	threadId := &sql.NullInt64{}
-	threadVotes := &sql.NullInt64{}
-	userNickname := &sql.NullString{}
+
+	prevVoice := &pgtype.Int2{}
+	threadId := &pgtype.Int4{}
+	threadVotes := &pgtype.Int4{}
+	userNickname := &pgtype.Varchar{}
 	if id != 0 {
-		err = tx.QueryRow(sqlSelectThreadAndVoteById, id, vote.Nickname).Scan(prevVoice, threadId, &threadVotes, userNickname)
+		err = tx.QueryRow(sqlSelectThreadAndVoteById, id, vote.Nickname).Scan(prevVoice, threadId, threadVotes, userNickname)
 	} else {
-		err = tx.QueryRow(sqlSelectThreadAndVoteBySlug, slug, vote.Nickname).Scan(prevVoice, threadId, &threadVotes, userNickname)
+		err = tx.QueryRow(sqlSelectThreadAndVoteBySlug, slug, vote.Nickname).Scan(prevVoice, threadId, threadVotes, userNickname)
 	}
 	if err != nil {
 		return nil
 	}
-	if !threadId.Valid || !userNickname.Valid {
+	if threadId.Status != pgtype.Present || userNickname.Status != pgtype.Present {
 		return nil
 	}
-	var prevVoiceInt int64
-	if prevVoice.Valid {
-		prevVoiceInt = prevVoice.Int64
-		_, err = tx.Exec(sqlUpdateVote, threadId.Int64, userNickname.String, vote.Voice)
+	var prevVoiceInt int32
+	if prevVoice.Status == pgtype.Present {
+		prevVoiceInt = int32(prevVoice.Int)
+		_, err = tx.Exec(sqlUpdateVote, threadId.Int, userNickname.String, vote.Voice)
 	} else {
-		_, err = tx.Exec(sqlInsertVote, threadId.Int64, userNickname.String, vote.Voice)
+		_, err = tx.Exec(sqlInsertVote, threadId.Int, userNickname.String, vote.Voice)
 	}
-	newVotes := threadVotes.Int64 + (int64(vote.Voice) - prevVoiceInt)
+	newVotes := threadVotes.Int + (int32(vote.Voice) - prevVoiceInt)
 	if err != nil {
 		return nil
 	}
 	thread := &Thread{}
-	slugNullable := &sql.NullString{}
-	err = tx.QueryRow(sqlUpdateThreadVotes, newVotes, threadId.Int64).Scan(&thread.Author, &thread.Created, &thread.Forum, &thread.Message, slugNullable, &thread.Title, &thread.ID, &thread.Votes)
+	slugNullable := &pgtype.Varchar{}
+	err = tx.QueryRow(sqlUpdateThreadVotes, newVotes, threadId.Int).Scan(&thread.Author, &thread.Created, &thread.Forum, &thread.Message, slugNullable, &thread.Title, &thread.ID, &thread.Votes)
 	thread.Slug = slugNullable.String
 	if err != nil {
 		return nil
