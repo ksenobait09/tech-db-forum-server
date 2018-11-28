@@ -264,7 +264,8 @@ func CreatePosts(threadSlug string, threadId int, posts PostPointList) (Status, 
 	service.IncPostsCount(postsLen)
 	if service.GetPostsCount() == 1500000 {
 		log.Println("Vacuum")
-		db.Exec("VACUUM ANALYZE")
+		db.Exec("VACUUM ANALYZE" +
+			"")
 	}
 	return StatusOK, posts
 }

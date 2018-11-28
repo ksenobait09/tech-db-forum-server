@@ -17,7 +17,7 @@ var once sync.Once
 func CreatePostAtThread(ctx *fasthttp.RequestCtx) {
 	slug, id := getThreadSlugOrId(ctx)
 	var posts post.PostPointList
-	err := posts.UnmarshalJSON(ctx.PostBody())
+	posts.UnmarshalJSON(ctx.PostBody())
 	status, posts := post.CreatePosts(slug, id, posts)
 	switch status {
 	case post.StatusOK:
