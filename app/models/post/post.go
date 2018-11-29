@@ -263,11 +263,17 @@ func CreatePosts(threadSlug string, threadId int, posts PostPointList) (Status, 
 	}
 	service.IncPostsCount(postsLen)
 	if service.GetPostsCount() == 1500000 {
-		log.Println("Cluster")
-		_, err := db.Exec("CLUSTER votes USING index_votes_cover")
-		log.Println(err)
-		_, err = db.Exec("CLUSTER threads USING index_threads_forum_created")
-		log.Println(err)
+		go func() {
+			log.Println("Cluster")
+			_, err := db.Exec("CLUSTER votes USING index_votes_cover")
+			log.Println(err)
+			_, err = db.Exec("CLUSTER threads USING index_threads_forum_created")
+			log.Println(err)
+			log.Println("Cluster Posts")
+			_, err = db.Exec("CLUSTER posts USING index_posts_thread_path")
+			log.Print(err)
+		}()
+		time.Sleep(time.Minute * 7)
 	}
 	return StatusOK, posts
 }
