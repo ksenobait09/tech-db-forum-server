@@ -343,10 +343,3 @@ func GetThreadId(slug string, id int) int {
 	}
 	return id
 }
-
-const salVacuumVotes = `
-VACUUM votes;
-`
-func VacuumVotes() {
-	db.Exec(salVacuumVotes)
-}
