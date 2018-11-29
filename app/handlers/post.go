@@ -5,7 +5,9 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"tech-db-server/app/database"
 	"tech-db-server/app/models/post"
+	"tech-db-server/app/models/service"
 	"tech-db-server/app/models/thread"
 )
 
@@ -26,6 +28,9 @@ func CreatePostAtThread(ctx *fasthttp.RequestCtx) {
 		responseWithDefaultError(ctx, fasthttp.StatusNotFound)
 	case post.StatusBadParent:
 		responseWithDefaultError(ctx, fasthttp.StatusConflict)
+	}
+	if service.GetPostsCount() == 1500000 {
+		database.ClusterPosts()
 	}
 }
 

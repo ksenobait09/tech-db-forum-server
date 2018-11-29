@@ -29,3 +29,9 @@ func GetInstance() *pgx.ConnPool {
 	})
 	return db
 }
+
+func ClusterPosts() {
+	log.Println("Cluster Posts")
+	_, err := db.Exec("CLUSTER posts USING index_posts_thread_path")
+	log.Print(err)
+}
