@@ -266,10 +266,6 @@ func CreatePosts(threadSlug string, threadId int, posts PostPointList) (Status, 
 		log.Println("Cluster")
 		_, err := db.Exec("CLUSTER posts USING index_posts_thread_path")
 		log.Println(err)
-		_, err = db.Exec("CLUSTER votes USING index_votes_cover")
-		log.Println(err)
-		_, err = db.Exec("CLUSTER threads USING index_threads_forum_created")
-		log.Println(err)
 	}
 	return StatusOK, posts
 }
