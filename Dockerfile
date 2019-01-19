@@ -4,19 +4,30 @@ FROM ubuntu:18.04
 # docker start db
 MAINTAINER Altunin Nikita
 
+ENV TZ=Europe/Moscow
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
 # Обвновление списка пакетов
 RUN apt-get -y update
+RUN apt install -y git wget gcc gnupg
 
 #
 # Установка postgresql
 #
-ENV PGVER 10
-RUN apt-get install -y postgresql-$PGVER
+ENV PGVER 11
 
-RUN apt install -y gcc
+RUN echo "deb http://apt.postgresql.org/pub/repos/apt/ bionic-pgdg main" > /etc/apt/sources.list.d/pgdg.list
+
+# get the signing key and import it
+RUN wget https://www.postgresql.org/media/keys/ACCC4CF8.asc
+RUN apt-key add ACCC4CF8.asc
+
+# fetch the metadata from the new repo
+RUN apt-get update
+
+RUN apt-get install -y  postgresql-$PGVER
+
 # Установка golang
-RUN apt install -y git wget
-
 RUN wget https://dl.google.com/go/go1.11.linux-amd64.tar.gz
 RUN tar -xvf go1.11.linux-amd64.tar.gz
 RUN mv go /usr/local
